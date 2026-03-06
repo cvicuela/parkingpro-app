@@ -4,7 +4,7 @@ import { connectSocket, disconnectSocket } from '../services/socket';
 import { toast } from 'react-toastify';
 import {
   LogIn, LogOut, Search, Car, Clock, DollarSign, CheckCircle,
-  XCircle, AlertTriangle, RefreshCw
+  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X
 } from 'lucide-react';
 
 function OccupancyPanel({ plans }) {
@@ -132,6 +132,7 @@ export default function ControlAccesoPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [qrModal, setQrModal] = useState(null);
 
   const fetchOccupancy = useCallback(async () => {
     try {
@@ -177,11 +178,20 @@ export default function ControlAccesoPage() {
   const handleRegisterEntry = async () => {
     setLoading(true);
     try {
-      await accessAPI.entry({
+      const { data } = await accessAPI.entry({
         vehiclePlate: plate.toUpperCase().trim(),
         validationResult
       });
       toast.success('Entrada registrada');
+      if (data.qrCode) {
+        setQrModal({
+          qr: data.qrCode,
+          plate: plate.toUpperCase().trim(),
+          time: new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' }),
+          type: validationResult?.accessType === 'subscription' ? 'Suscripcion' : 'Por hora',
+          plan: validationResult?.subscription?.plan_name || validationResult?.plan?.name || ''
+        });
+      }
       setPlate('');
       setValidationResult(null);
       fetchOccupancy();
@@ -347,6 +357,41 @@ export default function ControlAccesoPage() {
           <OccupancyPanel plans={plans} />
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {qrModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setQrModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <QrCode className="text-indigo-600" size={24} />
+                <h3 className="text-lg font-bold text-gray-800">Ticket de Entrada</h3>
+              </div>
+              <button onClick={() => setQrModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="text-center space-y-3">
+              <img src={qrModal.qr} alt="QR Code" className="mx-auto w-56 h-56" />
+              <div className="space-y-1">
+                <p className="text-2xl font-mono font-bold text-indigo-700">{qrModal.plate}</p>
+                <p className="text-sm text-gray-500">Entrada: {qrModal.time}</p>
+                <p className="text-sm text-gray-500">{qrModal.type} {qrModal.plan && `- ${qrModal.plan}`}</p>
+              </div>
+              <button
+                onClick={() => {
+                  const w = window.open('', '_blank');
+                  w.document.write(`<html><head><title>Ticket ${qrModal.plate}</title><style>body{text-align:center;font-family:sans-serif;padding:20px}img{width:250px}h1{font-size:28px;margin:10px 0}</style></head><body><h1>${qrModal.plate}</h1><img src="${qrModal.qr}" /><p>Entrada: ${qrModal.time}</p><p>${qrModal.type} ${qrModal.plan ? '- ' + qrModal.plan : ''}</p><p style="margin-top:20px;font-size:12px;color:#999">ParkingPro</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
+                  w.document.close();
+                }}
+                className="flex items-center gap-2 mx-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                <Printer size={16} /> Imprimir Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
