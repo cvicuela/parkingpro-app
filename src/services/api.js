@@ -116,6 +116,7 @@ export const paymentsAPI = {
 // Reports
 export const reportsAPI = {
   dashboard: () => api.get('/reports/dashboard'),
+  activeVehicles: () => api.get('/reports/active-vehicles'),
 };
 
 // Settings

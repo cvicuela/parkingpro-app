@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { reportsAPI, plansAPI } from '../services/api';
-import { DollarSign, Users, Car, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
+import { DollarSign, Users, Car, TrendingUp, AlertTriangle, BarChart3, Clock, RefreshCw } from 'lucide-react';
 
 function KPICard({ icon: Icon, label, value, change, color }) {
   const colorClasses = {
@@ -29,16 +29,33 @@ function KPICard({ icon: Icon, label, value, change, color }) {
 export default function ReportesPage() {
   const [dashboard, setDashboard] = useState(null);
   const [plans, setPlans] = useState([]);
+  const [activeVehicles, setActiveVehicles] = useState([]);
+  const [vehicleSummary, setVehicleSummary] = useState({ subscription: 0, hourly: 0, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = () => {
+    return Promise.all([
+      reportsAPI.dashboard().then(({ data }) => setDashboard(data.data || data)),
+      plansAPI.list().then(({ data }) => setPlans(data.data || data || [])),
+      reportsAPI.activeVehicles().then(({ data }) => {
+        setActiveVehicles(data.data || []);
+        setVehicleSummary(data.summary || { subscription: 0, hourly: 0, total: 0 });
+      })
+    ]).catch(() => {});
+  };
 
   useEffect(() => {
-    Promise.all([
-      reportsAPI.dashboard().then(({ data }) => setDashboard(data.data || data)),
-      plansAPI.list().then(({ data }) => setPlans(data.data || data || []))
-    ])
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchData().finally(() => setLoading(false));
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   if (loading) {
     return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
@@ -95,6 +112,80 @@ export default function ReportesPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Active vehicles report */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Car className="text-green-600" size={22} />
+            <h3 className="text-lg font-semibold text-gray-700">Vehiculos Activos en Parqueo</h3>
+            <span className="ml-2 px-2.5 py-0.5 bg-green-100 text-green-700 text-sm font-bold rounded-full">
+              {vehicleSummary.total}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              Suscripcion: <strong>{vehicleSummary.subscription}</strong> | Por hora: <strong>{vehicleSummary.hourly}</strong>
+            </span>
+            <button onClick={handleRefresh} className="text-gray-400 hover:text-gray-600" title="Actualizar">
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </div>
+        {activeVehicles.length === 0 ? (
+          <p className="text-center text-gray-400 py-6">No hay vehiculos activos en el parqueo</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 text-sm text-gray-500">
+                <tr>
+                  <th className="py-3 px-4">Placa</th>
+                  <th className="py-3 px-4">Vehiculo</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4">Plan</th>
+                  <th className="py-3 px-4">Tipo</th>
+                  <th className="py-3 px-4">Hora Entrada</th>
+                  <th className="py-3 px-4">Tiempo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeVehicles.map((v, i) => {
+                  const mins = v.minutes_elapsed ? Math.round(v.minutes_elapsed) : Math.round((Date.now() - new Date(v.entry_time)) / 60000);
+                  const hours = Math.floor(mins / 60);
+                  const remMins = mins % 60;
+                  return (
+                    <tr key={`${v.plate}-${i}`} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-700">{v.plate}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {v.make && v.model ? `${v.make} ${v.model}` : '-'}
+                        {v.color && <span className="ml-1 text-gray-400">({v.color})</span>}
+                      </td>
+                      <td className="py-3 px-4 text-sm">{v.customer_name || 'Visitante'}</td>
+                      <td className="py-3 px-4 text-sm">{v.plan_name || '-'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          v.access_type === 'subscription' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {v.access_type === 'subscription' ? 'Suscripcion' : 'Por hora'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {new Date(v.entry_time).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Clock size={14} className="text-gray-400" />
+                          {hours}h {remMins}m
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Summary table */}
