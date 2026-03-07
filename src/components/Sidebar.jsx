@@ -2,27 +2,35 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Car, CreditCard, Layers,
-  ShieldCheck, Receipt, BarChart3, Settings, LogOut, X
+  ShieldCheck, Receipt, BarChart3, Settings, LogOut, X,
+  Wallet, FileText, ShieldAlert, History
 } from 'lucide-react';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/vehiculos', icon: Car, label: 'Vehiculos' },
-  { to: '/planes', icon: Layers, label: 'Planes' },
-  { to: '/suscripciones', icon: CreditCard, label: 'Suscripciones' },
-  { to: '/acceso', icon: ShieldCheck, label: 'Control de Acceso' },
-  { to: '/pagos', icon: Receipt, label: 'Pagos' },
-  { to: '/reportes', icon: BarChart3, label: 'Reportes' },
-  { to: '/config', icon: Settings, label: 'Configuracion' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['operator','admin','super_admin'] },
+  { to: '/clientes', icon: Users, label: 'Clientes', roles: ['operator','admin','super_admin'] },
+  { to: '/vehiculos', icon: Car, label: 'Vehiculos', roles: ['operator','admin','super_admin'] },
+  { to: '/planes', icon: Layers, label: 'Planes', roles: ['admin','super_admin'] },
+  { to: '/suscripciones', icon: CreditCard, label: 'Suscripciones', roles: ['operator','admin','super_admin'] },
+  { to: '/acceso', icon: ShieldCheck, label: 'Control de Acceso', roles: ['operator','admin','super_admin'] },
+  { to: '/caja', icon: Wallet, label: 'Caja', roles: ['operator','admin','super_admin'] },
+  { to: '/caja/historial', icon: History, label: 'Historial Cajas', roles: ['admin','super_admin'] },
+  { to: '/pagos', icon: Receipt, label: 'Pagos', roles: ['operator','admin','super_admin'] },
+  { to: '/facturas', icon: FileText, label: 'Facturas', roles: ['operator','admin','super_admin'] },
+  { to: '/reportes', icon: BarChart3, label: 'Reportes', roles: ['admin','super_admin'] },
+  { to: '/auditoria', icon: ShieldAlert, label: 'Auditoria', roles: ['admin','super_admin'] },
+  { to: '/config', icon: Settings, label: 'Configuracion', roles: ['admin','super_admin'] },
 ];
 
 export default function Sidebar({ open, onClose }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const visibleItems = navItems.filter(item =>
+    !item.roles || !user || item.roles.includes(user.role)
+  );
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onClose} />
       )}
@@ -44,7 +52,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 py-4 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {visibleItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -65,6 +73,12 @@ export default function Sidebar({ open, onClose }) {
         </nav>
 
         <div className="p-4 border-t border-white/20">
+          {user && (
+            <div className="px-4 py-2 mb-2 text-xs text-white/50">
+              <p className="truncate">{user.email}</p>
+              <p className="capitalize text-white/40">{user.role}</p>
+            </div>
+          )}
           <button
             onClick={logout}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"

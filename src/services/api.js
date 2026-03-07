@@ -127,3 +127,28 @@ export const settingsAPI = {
 };
 
 export default api;
+
+// Cash Registers
+export const cashAPI = {
+  open: (data) => api.post('/cash-registers/open', data),
+  active: () => api.get('/cash-registers/active'),
+  close: (id, data) => api.post(`/cash-registers/${id}/close`, data),
+  approve: (id, data) => api.post(`/cash-registers/${id}/approve`, data),
+  transactions: (id) => api.get(`/cash-registers/${id}/transactions`),
+  history: (params) => api.get('/cash-registers/history', { params }),
+  limits: () => api.get('/cash-registers/limits'),
+};
+
+// Invoices
+export const invoicesAPI = {
+  list: (params) => api.get('/invoices', { params }),
+  get: (id) => api.get(`/invoices/${id}`),
+  stats: (params) => api.get('/invoices/stats', { params }),
+  fromPayment: (paymentId) => api.post(`/invoices/from-payment/${paymentId}`),
+};
+
+// Audit Log
+export const auditAPI = {
+  list: (params) => api.get('/audit', { params }),
+  actions: () => api.get('/audit/actions'),
+};
