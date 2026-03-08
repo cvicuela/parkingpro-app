@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { reportsAPI, plansAPI, accessAPI } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { DollarSign, Users, Car, AlertTriangle, TrendingUp } from 'lucide-react';
+import SessionStatusBadge from '../components/SessionStatusBadge';
 
 function StatCard({ icon: Icon, label, value, color, subtext }) {
   const colors = {
@@ -66,6 +67,9 @@ function ActiveSessionRow({ session }) {
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50">
       <td className="py-3 px-4 font-mono font-medium">{session.vehicle_plate}</td>
+      <td className="py-3 px-4">
+        <SessionStatusBadge status={session.status || 'active'} />
+      </td>
       <td className="py-3 px-4 text-sm text-gray-600">
         {new Date(session.entry_time).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
       </td>
@@ -186,6 +190,7 @@ export default function DashboardPage() {
               <thead className="bg-gray-50 text-sm text-gray-500">
                 <tr>
                   <th className="py-2 px-4">Placa</th>
+                  <th className="py-2 px-4">Estado</th>
                   <th className="py-2 px-4">Entrada</th>
                   <th className="py-2 px-4">Duracion</th>
                   <th className="py-2 px-4">Monto Actual</th>

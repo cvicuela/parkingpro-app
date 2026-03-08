@@ -100,9 +100,11 @@ export const accessAPI = {
   exit: (data) => api.post('/access/exit', data),
   history: (params) => api.get('/access/history', { params }),
   activeSessions: () => api.get('/access/sessions/active'),
+  allSessions: (params) => api.get('/access/sessions', { params }),
   sessionByPlate: (plate) => api.get(`/access/sessions/${plate}`),
   endSession: (id) => api.post(`/access/sessions/${id}/end`),
   sessionPayment: (id, data) => api.post(`/access/sessions/${id}/payment`, data),
+  abandonSession: (id) => api.post(`/access/sessions/${id}/abandon`),
 };
 
 // Payments
