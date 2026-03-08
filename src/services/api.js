@@ -154,3 +154,19 @@ export const auditAPI = {
   list: (params) => api.get('/audit', { params }),
   actions: () => api.get('/audit/actions'),
 };
+
+// RFID Cards
+export const rfidAPI = {
+  list: (params) => api.get('/rfid/cards', { params }),
+  poolStats: () => api.get('/rfid/cards/pool-stats'),
+  get: (id) => api.get(`/rfid/cards/${id}`),
+  register: (data) => api.post('/rfid/cards', data),
+  assignPermanent: (cardId, data) => api.post(`/rfid/cards/${cardId}/assign-permanent`, data),
+  assignTemporary: (cardId, data) => api.post(`/rfid/cards/${cardId}/assign-temporary`, data),
+  returnCard: (cardId) => api.post(`/rfid/cards/${cardId}/return`),
+  reportLost: (cardId) => api.post(`/rfid/cards/${cardId}/report-lost`),
+  disable: (cardId) => api.post(`/rfid/cards/${cardId}/disable`),
+  enable: (cardId) => api.post(`/rfid/cards/${cardId}/enable`),
+  unlink: (cardId) => api.post(`/rfid/cards/${cardId}/unlink`),
+  resolve: (cardUid) => api.get(`/rfid/resolve/${cardUid}`),
+};

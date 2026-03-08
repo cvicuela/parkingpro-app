@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { subscriptionsAPI, customersAPI, vehiclesAPI, plansAPI } from '../services/api';
+import { subscriptionsAPI, customersAPI, vehiclesAPI, plansAPI, rfidAPI } from '../services/api';
 import { toast } from 'react-toastify';
-import { Plus, Search, X, Pause, Play, Trash2, QrCode } from 'lucide-react';
+import { Plus, Search, X, Pause, Play, Trash2, QrCode, CreditCard, Wifi } from 'lucide-react';
 
 const statusBadge = {
   active: 'bg-green-100 text-green-700',
@@ -115,6 +115,9 @@ export default function SuscripcionesPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [rfidModal, setRfidModal] = useState(null); // subscription object
+  const [availableCards, setAvailableCards] = useState([]);
+  const [selectedCard, setSelectedCard] = useState('');
 
   const fetchSubs = async () => {
     try {
@@ -150,6 +153,36 @@ export default function SuscripcionesPage() {
     } catch (err) { toast.error(err.response?.data?.error || 'Error'); }
   };
 
+  const handleRfidAction = async (sub) => {
+    if (sub.rfid_card_id) {
+      // Unlink
+      if (!confirm('Desvincular tarjeta RFID de esta suscripcion?')) return;
+      try {
+        await rfidAPI.unlink(sub.rfid_card_id);
+        toast.success('Tarjeta RFID desvinculada');
+        fetchSubs();
+      } catch (err) { toast.error(err.response?.data?.error || 'Error'); }
+    } else {
+      // Show modal to link
+      try {
+        const { data } = await rfidAPI.list({ cardType: 'permanent', status: 'available' });
+        setAvailableCards(data.data || data || []);
+        setRfidModal(sub);
+      } catch (err) { toast.error('Error cargando tarjetas disponibles'); }
+    }
+  };
+
+  const handleLinkRfid = async () => {
+    if (!selectedCard) return;
+    try {
+      await rfidAPI.assignPermanent(selectedCard, { subscriptionId: rfidModal.id });
+      toast.success('Tarjeta RFID vinculada');
+      setRfidModal(null);
+      setSelectedCard('');
+      fetchSubs();
+    } catch (err) { toast.error(err.response?.data?.error || 'Error al vincular'); }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -181,6 +214,7 @@ export default function SuscripcionesPage() {
                   <th className="py-3 px-4">Plan</th>
                   <th className="py-3 px-4">Placa</th>
                   <th className="py-3 px-4">Estado</th>
+                  <th className="py-3 px-4">RFID</th>
                   <th className="py-3 px-4">Proxima Factura</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
@@ -196,6 +230,15 @@ export default function SuscripcionesPage() {
                         {s.status}
                       </span>
                     </td>
+                    <td className="py-3 px-4">
+                      {s.rfid_card_uid ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                          <Wifi size={10} /> {s.rfid_card_uid}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin RFID</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-sm text-gray-500">
                       {s.next_billing_date ? new Date(s.next_billing_date).toLocaleDateString('es-DO') : '-'}
                     </td>
@@ -209,6 +252,10 @@ export default function SuscripcionesPage() {
                           <button onClick={() => handleReactivate(s.id)} title="Reactivar"
                             className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Play size={14} /></button>
                         )}
+                        <button onClick={() => handleRfidAction(s)} title={s.rfid_card_id ? "Desvincular RFID" : "Vincular RFID"}
+                          className={`p-1.5 rounded ${s.rfid_card_id ? 'text-indigo-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}>
+                          <CreditCard size={14} />
+                        </button>
                         <button onClick={() => handleCancel(s.id)} title="Cancelar"
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                       </div>
@@ -220,6 +267,36 @@ export default function SuscripcionesPage() {
           </div>
         )}
       </div>
+
+      {rfidModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRfidModal(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><CreditCard size={20} /> Vincular Tarjeta RFID</h3>
+              <button onClick={() => setRfidModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-gray-600">Suscripcion: <strong>{rfidModal.customer_name}</strong> — {rfidModal.vehicle_plate}</p>
+              {availableCards.length === 0 ? (
+                <p className="text-sm text-amber-600">No hay tarjetas permanentes disponibles. Registre una desde la pagina RFID.</p>
+              ) : (
+                <select value={selectedCard} onChange={(e) => setSelectedCard(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="">Seleccionar tarjeta...</option>
+                  {availableCards.map(c => (
+                    <option key={c.id} value={c.id}>{c.label || c.card_uid} — UID: {c.card_uid}</option>
+                  ))}
+                </select>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setRfidModal(null)} className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button onClick={handleLinkRfid} disabled={!selectedCard}
+                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">Vincular</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <SubscriptionModal
