@@ -4,8 +4,9 @@ import { connectSocket, disconnectSocket } from '../services/socket';
 import { toast } from 'react-toastify';
 import {
   LogIn, LogOut, Search, Car, Clock, DollarSign, CheckCircle,
-  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X
+  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X, Filter
 } from 'lucide-react';
+import SessionStatusBadge, { SESSION_STATUS_CONFIG } from '../components/SessionStatusBadge';
 
 function OccupancyPanel({ plans }) {
   return (
@@ -133,17 +134,21 @@ export default function ControlAccesoPage() {
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [qrModal, setQrModal] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('active');
 
   const fetchOccupancy = useCallback(async () => {
     try {
+      const sessionFetcher = statusFilter === 'active'
+        ? accessAPI.activeSessions()
+        : accessAPI.allSessions({ status: statusFilter || undefined });
       const [plansRes, sessionsRes] = await Promise.allSettled([
         plansAPI.list(),
-        accessAPI.activeSessions()
+        sessionFetcher
       ]);
       if (plansRes.status === 'fulfilled') setPlans(plansRes.value.data.data || plansRes.value.data || []);
       if (sessionsRes.status === 'fulfilled') setSessions(sessionsRes.value.data.data || sessionsRes.value.data || []);
     } catch {} finally { setLoadingSessions(false); }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchOccupancy();
@@ -302,19 +307,34 @@ export default function ControlAccesoPage() {
           {/* Active sessions table */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-semibold text-gray-700">Sesiones Activas ({sessions.length})</h3>
-              <button onClick={fetchOccupancy} className="text-gray-400 hover:text-gray-600">
-                <RefreshCw size={16} />
-              </button>
+              <h3 className="font-semibold text-gray-700">Sesiones ({sessions.length})</h3>
+              <div className="flex items-center gap-2">
+                <Filter size={14} className="text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="active">Activas</option>
+                  <option value="paid">Pagadas</option>
+                  <option value="closed">Cerradas</option>
+                  <option value="abandoned">Abandonadas</option>
+                  <option value="">Todas</option>
+                </select>
+                <button onClick={fetchOccupancy} className="text-gray-400 hover:text-gray-600">
+                  <RefreshCw size={16} />
+                </button>
+              </div>
             </div>
             {sessions.length === 0 ? (
-              <p className="p-6 text-center text-gray-400">No hay sesiones activas</p>
+              <p className="p-6 text-center text-gray-400">No hay sesiones{statusFilter ? ` ${SESSION_STATUS_CONFIG[statusFilter]?.label?.toLowerCase() || statusFilter}s` : ''}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50 text-sm text-gray-500">
                     <tr>
                       <th className="py-2 px-4">Placa</th>
+                      <th className="py-2 px-4">Estado</th>
                       <th className="py-2 px-4">Entrada</th>
                       <th className="py-2 px-4">Duracion</th>
                       <th className="py-2 px-4">Monto</th>
@@ -324,9 +344,13 @@ export default function ControlAccesoPage() {
                   <tbody>
                     {sessions.map((s) => {
                       const mins = Math.round(s.minutes_elapsed || 0);
+                      const sessionStatus = s.status || 'active';
                       return (
                         <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-2 px-4 font-mono font-medium">{s.vehicle_plate}</td>
+                          <td className="py-2 px-4">
+                            <SessionStatusBadge status={sessionStatus} />
+                          </td>
                           <td className="py-2 px-4 text-sm">
                             {new Date(s.entry_time).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                           </td>
@@ -337,10 +361,12 @@ export default function ControlAccesoPage() {
                             RD$ {(s.current_amount || 0).toFixed(2)}
                           </td>
                           <td className="py-2 px-4">
-                            <button onClick={() => handleEndSession(s.id)}
-                              className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200">
-                              Finalizar
-                            </button>
+                            {sessionStatus === 'active' && (
+                              <button onClick={() => handleEndSession(s.id)}
+                                className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200">
+                                Finalizar
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

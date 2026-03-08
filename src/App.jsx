@@ -13,11 +13,16 @@ import ControlAccesoPage from './pages/ControlAccesoPage';
 import PagosPage from './pages/PagosPage';
 import ReportesPage from './pages/ReportesPage';
 import ConfigPage from './pages/ConfigPage';
+import CajaPage from './pages/CajaPage';
+import FacturasPage from './pages/FacturasPage';
+import AuditPage from './pages/AuditPage';
+import CajaHistorialPage from './pages/CajaHistorialPage';
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -34,9 +39,13 @@ function AppRoutes() {
         <Route path="planes" element={<PlanesPage />} />
         <Route path="suscripciones" element={<SuscripcionesPage />} />
         <Route path="acceso" element={<ControlAccesoPage />} />
+        <Route path="caja" element={<CajaPage />} />
         <Route path="pagos" element={<PagosPage />} />
-        <Route path="reportes" element={<ReportesPage />} />
-        <Route path="config" element={<ConfigPage />} />
+        <Route path="facturas" element={<FacturasPage />} />
+        <Route path="caja/historial" element={<ProtectedRoute roles={['admin','super_admin']}><CajaHistorialPage /></ProtectedRoute>} />
+        <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><ReportesPage /></ProtectedRoute>} />
+        <Route path="auditoria" element={<ProtectedRoute roles={['admin','super_admin']}><AuditPage /></ProtectedRoute>} />
+        <Route path="config" element={<ProtectedRoute roles={['admin','super_admin']}><ConfigPage /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

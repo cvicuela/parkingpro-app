@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportsAPI, plansAPI } from '../services/api';
 import { DollarSign, Users, Car, TrendingUp, AlertTriangle, BarChart3, Clock, RefreshCw } from 'lucide-react';
+import SessionStatusBadge from '../components/SessionStatusBadge';
 
 function KPICard({ icon: Icon, label, value, change, color }) {
   const colorClasses = {
