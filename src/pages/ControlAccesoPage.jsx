@@ -4,7 +4,7 @@ import { connectSocket, disconnectSocket } from '../services/socket';
 import { toast } from 'react-toastify';
 import {
   LogIn, LogOut, Search, Car, Clock, DollarSign, CheckCircle,
-  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X, Filter
+  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X, Filter, Wifi
 } from 'lucide-react';
 import SessionStatusBadge, { SESSION_STATUS_CONFIG } from '../components/SessionStatusBadge';
 
@@ -335,6 +335,7 @@ export default function ControlAccesoPage() {
                     <tr>
                       <th className="py-2 px-4">Placa</th>
                       <th className="py-2 px-4">Estado</th>
+                      <th className="py-2 px-4">Acceso</th>
                       <th className="py-2 px-4">Entrada</th>
                       <th className="py-2 px-4">Duracion</th>
                       <th className="py-2 px-4">Monto</th>
@@ -350,6 +351,16 @@ export default function ControlAccesoPage() {
                           <td className="py-2 px-4 font-mono font-medium">{s.vehicle_plate}</td>
                           <td className="py-2 px-4">
                             <SessionStatusBadge status={sessionStatus} />
+                          </td>
+                          <td className="py-2 px-4">
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                              s.access_method === 'rfid' ? 'bg-indigo-100 text-indigo-700' :
+                              s.access_method === 'qr' ? 'bg-purple-100 text-purple-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {s.access_method === 'rfid' ? <><Wifi size={10} /> RFID</> :
+                               s.access_method === 'qr' ? 'QR' : 'Manual'}
+                            </span>
                           </td>
                           <td className="py-2 px-4 text-sm">
                             {new Date(s.entry_time).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
