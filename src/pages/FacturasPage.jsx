@@ -3,6 +3,11 @@ import { toast } from 'react-toastify';
 import { FileText, Search, Printer, RefreshCw } from 'lucide-react';
 import { invoicesAPI } from '../services/api';
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 const STATUS_MAP = {
   paid: { label: 'Pagada', color: 'green' },
   refund: { label: 'Nota Crédito', color: 'orange' },
@@ -39,7 +44,7 @@ export default function FacturasPage() {
   const handlePrint = (invoice) => {
     const win = window.open('', '_blank');
     win.document.write(`
-      <html><head><title>Factura ${invoice.ncf}</title>
+      <html><head><title>Factura ${escapeHtml(invoice.ncf)}</title>
       <style>
         body { font-family: monospace; max-width: 400px; margin: 0 auto; padding: 20px; }
         h2 { text-align: center; } hr { border-top: 1px dashed #000; }
@@ -48,14 +53,14 @@ export default function FacturasPage() {
       </style></head>
       <body>
         <h2>ParkingPro</h2>
-        <p style="text-align:center">FACTURA DE VENTA<br>${invoice.ncf}</p>
+        <p style="text-align:center">FACTURA DE VENTA<br>${escapeHtml(invoice.ncf)}</p>
         <hr/>
-        <p>Cliente: ${invoice.customer_name}</p>
-        ${invoice.rnc ? `<p>RNC: ${invoice.rnc}</p>` : ''}
+        <p>Cliente: ${escapeHtml(invoice.customer_name)}</p>
+        ${invoice.rnc ? `<p>RNC: ${escapeHtml(invoice.rnc)}</p>` : ''}
         <p>Fecha: ${new Date(invoice.created_at).toLocaleString('es-DO')}</p>
         <hr/>
         ${JSON.parse(invoice.items || '[]').map(item =>
-          `<div class="row"><span>${item.description}</span><span>RD$${parseFloat(item.subtotal).toFixed(2)}</span></div>`
+          `<div class="row"><span>${escapeHtml(item.description)}</span><span>RD$${parseFloat(item.subtotal).toFixed(2)}</span></div>`
         ).join('')}
         <hr/>
         <div class="row"><span>Subtotal:</span><span>RD$${parseFloat(invoice.subtotal).toFixed(2)}</span></div>
