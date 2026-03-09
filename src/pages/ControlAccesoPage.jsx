@@ -8,6 +8,11 @@ import {
 } from 'lucide-react';
 import SessionStatusBadge, { SESSION_STATUS_CONFIG } from '../components/SessionStatusBadge';
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 function OccupancyPanel({ plans }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
@@ -418,7 +423,7 @@ export default function ControlAccesoPage() {
               <button
                 onClick={() => {
                   const w = window.open('', '_blank');
-                  w.document.write(`<html><head><title>Ticket ${qrModal.plate}</title><style>body{text-align:center;font-family:sans-serif;padding:20px}img{width:250px}h1{font-size:28px;margin:10px 0}</style></head><body><h1>${qrModal.plate}</h1><img src="${qrModal.qr}" /><p>Entrada: ${qrModal.time}</p><p>${qrModal.type} ${qrModal.plan ? '- ' + qrModal.plan : ''}</p><p style="margin-top:20px;font-size:12px;color:#999">ParkingPro</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
+                  w.document.write(`<html><head><title>Ticket ${escapeHtml(qrModal.plate)}</title><style>body{text-align:center;font-family:sans-serif;padding:20px}img{width:250px}h1{font-size:28px;margin:10px 0}</style></head><body><h1>${escapeHtml(qrModal.plate)}</h1><img src="${escapeHtml(qrModal.qr)}" /><p>Entrada: ${escapeHtml(qrModal.time)}</p><p>${escapeHtml(qrModal.type)} ${qrModal.plan ? '- ' + escapeHtml(qrModal.plan) : ''}</p><p style="margin-top:20px;font-size:12px;color:#999">ParkingPro</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
                   w.document.close();
                 }}
                 className="flex items-center gap-2 mx-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
