@@ -6,11 +6,13 @@ let socket = null;
 
 export function getSocket() {
   if (!socket) {
+    const token = localStorage.getItem('pp_token');
     socket = io(SOCKET_URL, {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 10
+      reconnectionAttempts: 10,
+      auth: { token },
     });
   }
   return socket;
