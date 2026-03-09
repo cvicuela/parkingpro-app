@@ -119,6 +119,15 @@ export const paymentsAPI = {
 export const reportsAPI = {
   dashboard: () => api.get('/reports/dashboard'),
   activeVehicles: () => api.get('/reports/active-vehicles'),
+  executiveSummary: () => api.get('/reports/executive-summary'),
+  revenue: (params) => api.get('/reports/revenue', { params }),
+  revenueByOperator: (params) => api.get('/reports/revenue-by-operator', { params }),
+  cashReconciliation: (params) => api.get('/reports/cash-reconciliation', { params }),
+  customers: (params) => api.get('/reports/customers', { params }),
+  occupancy: (params) => api.get('/reports/occupancy', { params }),
+  sessions: (params) => api.get('/reports/sessions', { params }),
+  invoicesReport: (params) => api.get('/reports/invoices', { params }),
+  incidents: (params) => api.get('/reports/incidents', { params }),
 };
 
 // Settings
