@@ -179,3 +179,26 @@ export const rfidAPI = {
   unlink: (cardId) => api.post(`/rfid/cards/${cardId}/unlink`),
   resolve: (cardUid) => api.get(`/rfid/resolve/${cardUid}`),
 };
+
+// Expenses
+export const expensesAPI = {
+  list: (params) => api.get('/expenses', { params }),
+  create: (data) => api.post('/expenses', data),
+  update: (id, data) => api.put(`/expenses/${id}`, data),
+  delete: (id) => api.delete(`/expenses/${id}`),
+  stats: (params) => api.get('/expenses/stats', { params }),
+};
+
+// Incidents
+export const incidentsAPI = {
+  list: (params) => api.get('/incidents', { params }),
+  create: (data) => api.post('/incidents', data),
+  resolve: (id, data) => api.put(`/incidents/${id}/resolve`, data),
+};
+
+// Notifications
+export const notificationsAPI = {
+  list: (params) => api.get('/notifications', { params }),
+  stats: () => api.get('/notifications/stats'),
+  send: (data) => api.post('/notifications', data),
+};
