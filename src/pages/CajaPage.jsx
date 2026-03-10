@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Wallet, Lock, CheckCircle, AlertTriangle, Plus, Minus, List } from 'lucide-react';
+import { Wallet, Lock, CheckCircle, AlertTriangle, Plus, Minus, List, CreditCard, Banknote, ArrowRightLeft } from 'lucide-react';
 import { cashAPI } from '../services/api';
 
 const DENOMINATIONS = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
@@ -78,6 +78,23 @@ export default function CajaPage() {
   const totalIn = transactions.filter(t => t.direction === 'in').reduce((s, t) => s + parseFloat(t.amount), 0);
   const totalOut = transactions.filter(t => t.direction === 'out').reduce((s, t) => s + parseFloat(t.amount), 0);
 
+  // Desglose por método de pago
+  const totalCard = activeRegister ? parseFloat(activeRegister.total_card || 0) : transactions
+    .filter(t => t.direction === 'in' && t.payment_method === 'card')
+    .reduce((s, t) => s + parseFloat(t.amount), 0);
+  const totalTransfer = activeRegister ? parseFloat(activeRegister.total_transfer || 0) : transactions
+    .filter(t => t.direction === 'in' && t.payment_method === 'transfer')
+    .reduce((s, t) => s + parseFloat(t.amount), 0);
+  const cashIn = activeRegister ? parseFloat(activeRegister.cash_in || 0) : transactions
+    .filter(t => t.direction === 'in' && (!t.payment_method || t.payment_method === 'cash'))
+    .reduce((s, t) => s + parseFloat(t.amount), 0);
+  const cashOut = transactions
+    .filter(t => t.direction === 'out' && (!t.payment_method || t.payment_method === 'cash'))
+    .reduce((s, t) => s + parseFloat(t.amount), 0);
+  const expectedCash = cashIn - cashOut;
+  // La diferencia se calcula solo contra efectivo
+  const closeDifference = countedBalance - expectedCash;
+
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-indigo-600 rounded-full" /></div>;
 
   return (
@@ -114,6 +131,33 @@ export default function CajaPage() {
               </div>
             ))}
           </div>
+
+          {/* Desglose por método de pago */}
+          {(totalCard > 0 || totalTransfer > 0) && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                <Banknote size={16} className="text-green-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Efectivo</p>
+                  <p className="text-lg font-bold text-green-700">RD${expectedCash.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="bg-white border border-purple-200 rounded-lg p-3 flex items-center gap-2">
+                <CreditCard size={16} className="text-purple-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Tarjeta</p>
+                  <p className="text-lg font-bold text-purple-700">RD${totalCard.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="bg-white border border-cyan-200 rounded-lg p-3 flex items-center gap-2">
+                <ArrowRightLeft size={16} className="text-cyan-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Transferencia</p>
+                  <p className="text-lg font-bold text-cyan-700">RD${totalTransfer.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Info de caja */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
@@ -219,16 +263,25 @@ export default function CajaPage() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span>Saldo esperado:</span><span className="font-semibold">RD${(totalIn - totalOut).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Saldo contado:</span><span className="font-semibold text-indigo-600">RD${countedBalance.toFixed(2)}</span></div>
-                <div className={`flex justify-between font-bold ${Math.abs(countedBalance - (totalIn - totalOut)) > limits.cashDiffThreshold ? 'text-red-600' : 'text-green-600'}`}>
+                <div className="flex justify-between"><span>Efectivo esperado en caja:</span><span className="font-semibold">RD${expectedCash.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Efectivo contado:</span><span className="font-semibold text-indigo-600">RD${countedBalance.toFixed(2)}</span></div>
+                <div className={`flex justify-between font-bold ${Math.abs(closeDifference) > limits.cashDiffThreshold ? 'text-red-600' : 'text-green-600'}`}>
                   <span>Diferencia:</span>
-                  <span>RD${(countedBalance - (totalIn - totalOut)).toFixed(2)}</span>
+                  <span>RD${closeDifference.toFixed(2)}</span>
                 </div>
-                {Math.abs(countedBalance - (totalIn - totalOut)) > limits.cashDiffThreshold && (
+                {Math.abs(closeDifference) > limits.cashDiffThreshold && (
                   <div className="flex items-center gap-2 text-orange-600 bg-orange-50 rounded p-2 mt-2">
                     <AlertTriangle size={16} />
                     <span>Diferencia supera RD${limits.cashDiffThreshold} — requiere aprobación del supervisor</span>
+                  </div>
+                )}
+                {/* Otros ingresos no contados en efectivo */}
+                {(totalCard > 0 || totalTransfer > 0) && (
+                  <div className="bg-blue-50 rounded p-2 mt-2 space-y-1">
+                    <p className="text-xs font-medium text-blue-700">Otros ingresos (no se cuentan en efectivo):</p>
+                    {totalCard > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Tarjeta:</span><span className="font-semibold">RD${totalCard.toFixed(2)}</span></div>}
+                    {totalTransfer > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Transferencia:</span><span className="font-semibold">RD${totalTransfer.toFixed(2)}</span></div>}
+                    <div className="flex justify-between text-xs pt-1 border-t border-blue-200"><span className="text-blue-600 font-medium">Total general:</span><span className="font-bold">RD${(totalIn - totalOut).toFixed(2)}</span></div>
                   </div>
                 )}
               </div>
