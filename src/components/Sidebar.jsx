@@ -9,7 +9,7 @@ import {
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['operator','admin','super_admin'] },
   { to: '/clientes', icon: Users, label: 'Clientes', roles: ['operator','admin','super_admin'] },
-  { to: '/vehiculos', icon: Car, label: 'Vehiculos', roles: ['operator','admin','super_admin'] },
+  { to: '/vehiculos', icon: Car, label: 'Vehículos', roles: ['operator','admin','super_admin'] },
   { to: '/planes', icon: Layers, label: 'Planes', roles: ['admin','super_admin'] },
   { to: '/suscripciones', icon: CreditCard, label: 'Suscripciones', roles: ['operator','admin','super_admin'] },
   { to: '/acceso', icon: ShieldCheck, label: 'Control de Acceso', roles: ['operator','admin','super_admin'] },
@@ -21,8 +21,8 @@ const navItems = [
   { to: '/incidentes', icon: AlertTriangle, label: 'Incidentes', roles: ['operator','admin','super_admin'] },
   { to: '/notificaciones', icon: Bell, label: 'Notificaciones', roles: ['admin','super_admin'] },
   { to: '/reportes', icon: BarChart3, label: 'Reportes', roles: ['admin','super_admin'] },
-  { to: '/auditoria', icon: ShieldAlert, label: 'Auditoria', roles: ['admin','super_admin'] },
-  { to: '/config', icon: Settings, label: 'Configuracion', roles: ['admin','super_admin'] },
+  { to: '/auditoria', icon: ShieldAlert, label: 'Auditoría', roles: ['admin','super_admin'] },
+  { to: '/config', icon: Settings, label: 'Configuración', roles: ['admin','super_admin'] },
 ];
 
 export default function Sidebar({ open, onClose }) {
@@ -87,7 +87,7 @@ export default function Sidebar({ open, onClose }) {
             className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
           >
             <LogOut size={20} />
-            <span>Cerrar Sesion</span>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>

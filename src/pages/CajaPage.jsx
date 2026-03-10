@@ -273,7 +273,7 @@ export default function CajaPage() {
                 {Math.abs(closeDifference) > limits.cashDiffThreshold && (
                   <div className="flex items-center gap-2 text-orange-600 bg-orange-50 rounded p-2 mt-2">
                     <AlertTriangle size={16} />
-                    <span>Diferencia supera {fmtMoney(limits.cashDiffThreshold)} — requiere aprobacion del supervisor</span>
+                    <span>Diferencia supera {fmtMoney(limits.cashDiffThreshold)} — requiere aprobación del supervisor</span>
                   </div>
                 )}
                 {/* Otros ingresos no contados en efectivo */}

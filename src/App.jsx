@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientesPage from './pages/ClientesPage';
@@ -29,6 +30,10 @@ function ProtectedRoute({ children, roles }) {
   return children;
 }
 
+function PageWrapper({ name, children }) {
+  return <ErrorBoundary pageName={name}>{children}</ErrorBoundary>;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
 
@@ -36,22 +41,22 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<DashboardPage />} />
-        <Route path="clientes" element={<ClientesPage />} />
-        <Route path="vehiculos" element={<VehiculosPage />} />
-        <Route path="planes" element={<PlanesPage />} />
-        <Route path="suscripciones" element={<SuscripcionesPage />} />
-        <Route path="acceso" element={<ControlAccesoPage />} />
-        <Route path="caja" element={<CajaPage />} />
-        <Route path="pagos" element={<PagosPage />} />
-        <Route path="facturas" element={<FacturasPage />} />
-        <Route path="caja/historial" element={<ProtectedRoute roles={['admin','super_admin']}><CajaHistorialPage /></ProtectedRoute>} />
-        <Route path="gastos" element={<ProtectedRoute roles={['admin','super_admin']}><GastosPage /></ProtectedRoute>} />
-        <Route path="incidentes" element={<ProtectedRoute><IncidentesPage /></ProtectedRoute>} />
-        <Route path="notificaciones" element={<ProtectedRoute roles={['admin','super_admin']}><NotificacionesPage /></ProtectedRoute>} />
-        <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><ReportesPage /></ProtectedRoute>} />
-        <Route path="auditoria" element={<ProtectedRoute roles={['admin','super_admin']}><AuditPage /></ProtectedRoute>} />
-        <Route path="config" element={<ProtectedRoute roles={['admin','super_admin']}><ConfigPage /></ProtectedRoute>} />
+        <Route index element={<PageWrapper name="Dashboard"><DashboardPage /></PageWrapper>} />
+        <Route path="clientes" element={<PageWrapper name="Clientes"><ClientesPage /></PageWrapper>} />
+        <Route path="vehiculos" element={<PageWrapper name="Vehículos"><VehiculosPage /></PageWrapper>} />
+        <Route path="planes" element={<PageWrapper name="Planes"><PlanesPage /></PageWrapper>} />
+        <Route path="suscripciones" element={<PageWrapper name="Suscripciones"><SuscripcionesPage /></PageWrapper>} />
+        <Route path="acceso" element={<PageWrapper name="Control de Acceso"><ControlAccesoPage /></PageWrapper>} />
+        <Route path="caja" element={<PageWrapper name="Caja"><CajaPage /></PageWrapper>} />
+        <Route path="pagos" element={<PageWrapper name="Pagos"><PagosPage /></PageWrapper>} />
+        <Route path="facturas" element={<PageWrapper name="Facturas"><FacturasPage /></PageWrapper>} />
+        <Route path="caja/historial" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Historial de Cajas"><CajaHistorialPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="gastos" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Gastos"><GastosPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="incidentes" element={<ProtectedRoute><PageWrapper name="Incidentes"><IncidentesPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="notificaciones" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Notificaciones"><NotificacionesPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Reportes"><ReportesPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="auditoria" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Auditoría"><AuditPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="config" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Configuración"><ConfigPage /></PageWrapper></ProtectedRoute>} />
       </Route>
     </Routes>
   );

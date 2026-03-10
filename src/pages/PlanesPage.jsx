@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { plansAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { Plus, Edit2, Trash2, X, Clock, Sun, Moon, Timer } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const planIcons = { diurno: Sun, nocturno: Moon, '24h': Clock, hourly: Timer };
 const planColors = {
@@ -75,7 +76,7 @@ function PlanModal({ plan, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
             <textarea value={form.description || ''} onChange={set('description')} rows={2}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
@@ -145,6 +146,7 @@ export default function PlanesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const fetchPlans = async () => {
     try {
@@ -155,14 +157,16 @@ export default function PlanesPage() {
 
   useEffect(() => { fetchPlans(); }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Desactivar este plan?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await plansAPI.delete(id);
+      await plansAPI.delete(confirmDelete);
       toast.success('Plan desactivado');
+      setConfirmDelete(null);
       fetchPlans();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al desactivar');
+      setConfirmDelete(null);
     }
   };
 
@@ -191,9 +195,9 @@ export default function PlanesPage() {
                   <Icon size={20} />
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => { setEditing(plan); setShowModal(true); }}
+                  <button onClick={() => { setEditing(plan); setShowModal(true); }} title="Editar plan"
                     className="p-1 text-gray-400 hover:text-indigo-600"><Edit2 size={14} /></button>
-                  <button onClick={() => handleDelete(plan.id)}
+                  <button onClick={() => setConfirmDelete(plan.id)} title="Desactivar plan"
                     className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -229,6 +233,15 @@ export default function PlanesPage() {
           onSave={() => { setShowModal(false); setEditing(null); fetchPlans(); }}
         />
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Desactivar Plan"
+        message="¿Estás seguro de que deseas desactivar este plan? Las suscripciones activas no se verán afectadas."
+        confirmText="Desactivar"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

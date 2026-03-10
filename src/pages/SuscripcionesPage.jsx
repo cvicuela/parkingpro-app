@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { subscriptionsAPI, customersAPI, vehiclesAPI, plansAPI, rfidAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { Plus, Search, X, Pause, Play, Trash2, QrCode, CreditCard, Wifi } from 'lucide-react';
+import { SkeletonTable } from '../components/SkeletonLoader';
+import ConfirmModal from '../components/ConfirmModal';
+import { formatDate } from '../services/formatDate';
 
 const statusBadge = {
   active: 'bg-green-100 text-green-700',
@@ -34,10 +37,10 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
     try {
       if (subscription?.id) {
         await subscriptionsAPI.update(subscription.id, form);
-        toast.success('Suscripcion actualizada');
+        toast.success('Suscripción actualizada');
       } else {
         await subscriptionsAPI.create(form);
-        toast.success('Suscripcion creada');
+        toast.success('Suscripción creada');
       }
       onSave();
     } catch (err) {
@@ -51,7 +54,7 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-lg font-semibold">{subscription ? 'Editar' : 'Nueva Suscripcion'}</h3>
+          <h3 className="text-lg font-semibold">{subscription ? 'Editar' : 'Nueva Suscripción'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
@@ -65,7 +68,7 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehiculo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vehículo</label>
             <select value={form.vehicle_id} onChange={set('vehicle_id')} required
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
               <option value="">Seleccionar...</option>
@@ -109,7 +112,7 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
   );
 }
 
-export default function SuscripcionesPage() {
+export default function SuscripciónesPage() {
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -118,6 +121,7 @@ export default function SuscripcionesPage() {
   const [rfidModal, setRfidModal] = useState(null); // subscription object
   const [availableCards, setAvailableCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState('');
+  const [confirmCancel, setConfirmCancel] = useState(null);
 
   const fetchSubs = async () => {
     try {
@@ -131,7 +135,7 @@ export default function SuscripcionesPage() {
   const handleSuspend = async (id) => {
     try {
       await subscriptionsAPI.suspend(id);
-      toast.success('Suscripcion suspendida');
+      toast.success('Suscripción suspendida');
       fetchSubs();
     } catch (err) { toast.error(err.response?.data?.error || 'Error'); }
   };
@@ -139,24 +143,28 @@ export default function SuscripcionesPage() {
   const handleReactivate = async (id) => {
     try {
       await subscriptionsAPI.reactivate(id);
-      toast.success('Suscripcion reactivada');
+      toast.success('Suscripción reactivada');
       fetchSubs();
     } catch (err) { toast.error(err.response?.data?.error || 'Error'); }
   };
 
-  const handleCancel = async (id) => {
-    if (!confirm('Cancelar esta suscripcion?')) return;
+  const handleCancel = async () => {
+    if (!confirmCancel) return;
     try {
-      await subscriptionsAPI.cancel(id);
-      toast.success('Suscripcion cancelada');
+      await subscriptionsAPI.cancel(confirmCancel);
+      toast.success('Suscripción cancelada');
+      setConfirmCancel(null);
       fetchSubs();
-    } catch (err) { toast.error(err.response?.data?.error || 'Error'); }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error');
+      setConfirmCancel(null);
+    }
   };
 
   const handleRfidAction = async (sub) => {
     if (sub.rfid_card_id) {
       // Unlink
-      if (!confirm('Desvincular tarjeta RFID de esta suscripcion?')) return;
+      if (!confirm('Desvincular tarjeta RFID de esta suscripción?')) return;
       try {
         await rfidAPI.unlink(sub.rfid_card_id);
         toast.success('Tarjeta RFID desvinculada');
@@ -186,10 +194,10 @@ export default function SuscripcionesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h2 className="text-2xl font-bold text-gray-800">Suscripciones</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Suscripciónes</h2>
         <button onClick={() => { setEditing(null); setShowModal(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-          <Plus size={18} /> Nueva Suscripcion
+          <Plus size={18} /> Nueva Suscripción
         </button>
       </div>
 
@@ -202,9 +210,9 @@ export default function SuscripcionesPage() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>
+          <SkeletonTable rows={6} cols={7} />
         ) : subs.length === 0 ? (
-          <p className="p-8 text-center text-gray-400">No se encontraron suscripciones</p>
+          <p className="p-8 text-center text-gray-400">No se encontraron suscripciónes</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -215,7 +223,7 @@ export default function SuscripcionesPage() {
                   <th className="py-3 px-4">Placa</th>
                   <th className="py-3 px-4">Estado</th>
                   <th className="py-3 px-4">RFID</th>
-                  <th className="py-3 px-4">Proxima Factura</th>
+                  <th className="py-3 px-4">Próxima Factura</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -240,7 +248,7 @@ export default function SuscripcionesPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-500">
-                      {s.next_billing_date ? new Date(s.next_billing_date).toLocaleDateString('es-DO') : '-'}
+                      {s.next_billing_date ? formatDate(s.next_billing_date) : '-'}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-1">
@@ -256,7 +264,7 @@ export default function SuscripcionesPage() {
                           className={`p-1.5 rounded ${s.rfid_card_id ? 'text-indigo-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}>
                           <CreditCard size={14} />
                         </button>
-                        <button onClick={() => handleCancel(s.id)} title="Cancelar"
+                        <button onClick={() => setConfirmCancel(s.id)} title="Cancelar suscripción"
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                       </div>
                     </td>
@@ -276,9 +284,9 @@ export default function SuscripcionesPage() {
               <button onClick={() => setRfidModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-4 space-y-3">
-              <p className="text-sm text-gray-600">Suscripcion: <strong>{rfidModal.customer_name}</strong> — {rfidModal.vehicle_plate}</p>
+              <p className="text-sm text-gray-600">Suscripción: <strong>{rfidModal.customer_name}</strong> — {rfidModal.vehicle_plate}</p>
               {availableCards.length === 0 ? (
-                <p className="text-sm text-amber-600">No hay tarjetas permanentes disponibles. Registre una desde la pagina RFID.</p>
+                <p className="text-sm text-amber-600">No hay tarjetas permanentes disponibles. Registre una desde la página RFID.</p>
               ) : (
                 <select value={selectedCard} onChange={(e) => setSelectedCard(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -305,6 +313,15 @@ export default function SuscripcionesPage() {
           onSave={() => { setShowModal(false); setEditing(null); fetchSubs(); }}
         />
       )}
+
+      <ConfirmModal
+        open={!!confirmCancel}
+        title="Cancelar Suscripción"
+        message="¿Estás seguro de que deseas cancelar esta suscripción? El cliente perderá acceso al parqueo."
+        confirmText="Cancelar Suscripción"
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmCancel(null)}
+      />
     </div>
   );
 }
