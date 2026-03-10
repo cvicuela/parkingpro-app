@@ -3,6 +3,8 @@ import { reportsAPI, plansAPI, accessAPI } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { DollarSign, Users, Car, AlertTriangle, TrendingUp } from 'lucide-react';
 import SessionStatusBadge from '../components/SessionStatusBadge';
+import { SkeletonKPI, SkeletonTable } from '../components/SkeletonLoader';
+import { formatTime } from '../services/formatDate';
 
 function StatCard({ icon: Icon, label, value, color, subtext }) {
   const colors = {
@@ -71,7 +73,7 @@ function ActiveSessionRow({ session }) {
         <SessionStatusBadge status={session.status || 'active'} />
       </td>
       <td className="py-3 px-4 text-sm text-gray-600">
-        {new Date(session.entry_time).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+        {formatTime(session.entry_time)}
       </td>
       <td className="py-3 px-4 text-sm">{hours}h {mins}m</td>
       <td className="py-3 px-4 text-sm font-medium text-green-600">
@@ -95,7 +97,16 @@ export default function DashboardPage() {
         accessAPI.activeSessions(),
       ]);
 
-      if (dashRes.status === 'fulfilled') setDashboard(dashRes.value.data.data || dashRes.value.data);
+      if (dashRes.status === 'fulfilled') {
+        const d = dashRes.value.data.data || dashRes.value.data;
+        // Normalize: backend sends camelCase, frontend uses snake_case
+        setDashboard({
+          revenue: d.revenue ?? d.total_revenue ?? 0,
+          active_customers: d.activeCustomers ?? d.active_customers ?? 0,
+          total_subscriptions: d.totalSubscriptions ?? d.total_subscriptions ?? 0,
+          overdue_count: d.overdueCount ?? d.overdue_count ?? 0,
+        });
+      }
       if (plansRes.status === 'fulfilled') setPlans(plansRes.value.data.data || plansRes.value.data || []);
       if (sessionsRes.status === 'fulfilled') setSessions(sessionsRes.value.data.data || sessionsRes.value.data || []);
     } catch {} finally {
@@ -105,7 +116,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 2000);
+    const interval = setInterval(fetchData, 30000);
 
     const socket = connectSocket();
     socket.on('occupancy_update', (data) => {
@@ -123,8 +134,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      <div className="space-y-6">
+        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+        <SkeletonKPI count={4} />
+        <SkeletonTable rows={5} cols={5} />
       </div>
     );
   }
@@ -149,7 +162,7 @@ export default function DashboardPage() {
         />
         <StatCard
           icon={Car}
-          label="Vehiculos Activos"
+          label="Vehículos Activos"
           value={sessions.length}
           color="blue"
           subtext="Sesiones activas ahora"
@@ -164,7 +177,7 @@ export default function DashboardPage() {
 
       {/* Occupancy Section */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-700 mb-3">Ocupacion por Plan</h3>
+        <h3 className="text-lg font-semibold text-gray-700 mb-3">Ocupación por Plan</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan) => (
             <OccupancyBar key={plan.id} plan={plan} />
@@ -192,7 +205,7 @@ export default function DashboardPage() {
                   <th className="py-2 px-4">Placa</th>
                   <th className="py-2 px-4">Estado</th>
                   <th className="py-2 px-4">Entrada</th>
-                  <th className="py-2 px-4">Duracion</th>
+                  <th className="py-2 px-4">Duración</th>
                   <th className="py-2 px-4">Monto Actual</th>
                 </tr>
               </thead>

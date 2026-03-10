@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { FileText, Search, Printer, RefreshCw } from 'lucide-react';
 import { invoicesAPI } from '../services/api';
+import { SkeletonTable } from '../components/SkeletonLoader';
+import Pagination from '../components/Pagination';
+import { formatDate, formatDateTime } from '../services/formatDate';
+
+const PAGE_SIZE = 15;
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -22,6 +27,7 @@ export default function FacturasPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(1);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -116,7 +122,7 @@ export default function FacturasPage() {
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-b-2 border-indigo-600 rounded-full" /></div>
+          <SkeletonTable rows={8} cols={8} />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -129,7 +135,7 @@ export default function FacturasPage() {
             <tbody>
               {invoices.length === 0
                 ? <tr><td colSpan={8} className="text-center text-gray-400 py-8">No hay facturas</td></tr>
-                : invoices.map(inv => (
+                : invoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(inv => (
                   <tr key={inv.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelected(inv)}>
                     <td className="px-4 py-3 font-mono font-semibold text-indigo-600">#{inv.invoice_number}</td>
                     <td className="px-4 py-3 font-mono text-xs">{inv.ncf}</td>
@@ -137,7 +143,7 @@ export default function FacturasPage() {
                     <td className="px-4 py-3">RD${parseFloat(inv.subtotal).toFixed(2)}</td>
                     <td className="px-4 py-3">RD${parseFloat(inv.tax_amount).toFixed(2)}</td>
                     <td className="px-4 py-3 font-semibold">RD${parseFloat(inv.total).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(inv.created_at).toLocaleDateString('es-DO')}</td>
+                    <td className="px-4 py-3 text-gray-500">{formatDate(inv.created_at)}</td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); handlePrint(inv); }}
                         className="flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 text-xs">
@@ -149,6 +155,9 @@ export default function FacturasPage() {
               }
             </tbody>
           </table>
+        )}
+        {!loading && invoices.length > 0 && (
+          <Pagination currentPage={page} totalItems={invoices.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
         )}
       </div>
 
@@ -164,7 +173,7 @@ export default function FacturasPage() {
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Cliente:</span><span className="font-medium">{selected.customer_name}</span></div>
               {selected.rnc && <div className="flex justify-between"><span className="text-gray-500">RNC:</span><span>{selected.rnc}</span></div>}
-              <div className="flex justify-between"><span className="text-gray-500">Fecha:</span><span>{new Date(selected.created_at).toLocaleString('es-DO')}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Fecha:</span><span>{formatDateTime(selected.created_at)}</span></div>
             </div>
             <hr className="my-3" />
             {JSON.parse(selected.items || '[]').map((item, i) => (

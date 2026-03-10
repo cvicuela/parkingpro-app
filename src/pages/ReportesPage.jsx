@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { reportsAPI, plansAPI } from '../services/api';
 import { DollarSign, Users, Car, TrendingUp, AlertTriangle, BarChart3, Clock, RefreshCw } from 'lucide-react';
 import SessionStatusBadge from '../components/SessionStatusBadge';
+import { SkeletonKPI, SkeletonTable } from '../components/SkeletonLoader';
+import { formatTime } from '../services/formatDate';
 
 function KPICard({ icon: Icon, label, value, change, color }) {
   const colorClasses = {
@@ -35,15 +37,29 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = () => {
-    return Promise.all([
-      reportsAPI.dashboard().then(({ data }) => setDashboard(data.data || data)),
-      plansAPI.list().then(({ data }) => setPlans(data.data || data || [])),
-      reportsAPI.activeVehicles().then(({ data }) => {
-        setActiveVehicles(data.data || []);
-        setVehicleSummary(data.summary || { subscription: 0, hourly: 0, total: 0 });
-      })
-    ]).catch(() => {});
+  const fetchData = async () => {
+    const results = await Promise.allSettled([
+      reportsAPI.dashboard(),
+      plansAPI.list(),
+      reportsAPI.activeVehicles(),
+    ]);
+
+    if (results[0].status === 'fulfilled') {
+      const d = results[0].value.data.data || results[0].value.data;
+      setDashboard({
+        revenue: d.revenue ?? d.total_revenue ?? 0,
+        active_customers: d.activeCustomers ?? d.active_customers ?? 0,
+        overdue_count: d.overdueCount ?? d.overdue_count ?? 0,
+      });
+    }
+    if (results[1].status === 'fulfilled') {
+      setPlans(results[1].value.data.data || results[1].value.data || []);
+    }
+    if (results[2].status === 'fulfilled') {
+      const data = results[2].value.data;
+      setActiveVehicles(data.data || []);
+      setVehicleSummary(data.summary || { subscription: 0, hourly: 0, total: 0 });
+    }
   };
 
   useEffect(() => {
@@ -59,7 +75,13 @@ export default function ReportesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
+    return (
+      <div className="space-y-6">
+        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+        <SkeletonKPI count={4} />
+        <SkeletonTable rows={5} cols={7} />
+      </div>
+    );
   }
 
   const totalCapacity = plans.reduce((s, p) => s + (p.max_capacity || 0), 0);
@@ -76,14 +98,14 @@ export default function ReportesPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard icon={DollarSign} label="Ingresos del Mes" value={`RD$ ${(dashboard?.revenue || 0).toLocaleString()}`} color="green" />
-        <KPICard icon={Users} label="Clientes Activos" value={dashboard?.active_customers || 0} color="indigo" />
-        <KPICard icon={Car} label="Ocupacion General" value={`${occupancyPct}%`} color="blue" />
-        <KPICard icon={AlertTriangle} label="Cuentas Morosas" value={dashboard?.overdue_count || 0} color="red" />
+        <KPICard icon={Users} label="Clientes Activos" value={dashboard?.active_customers ?? 0} color="indigo" />
+        <KPICard icon={Car} label="Ocupación General" value={`${occupancyPct}%`} color="blue" />
+        <KPICard icon={AlertTriangle} label="Cuentas Morosas" value={dashboard?.overdue_count ?? 0} color="red" />
       </div>
 
       {/* Occupancy by plan */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ocupacion por Plan</h3>
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ocupación por Plan</h3>
         <div className="space-y-4">
           {plans.map((plan) => {
             const pct = plan.max_capacity > 0 ? Math.round((plan.current_occupancy / plan.max_capacity) * 100) : 0;
@@ -120,14 +142,14 @@ export default function ReportesPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Car className="text-green-600" size={22} />
-            <h3 className="text-lg font-semibold text-gray-700">Vehiculos Activos en Parqueo</h3>
+            <h3 className="text-lg font-semibold text-gray-700">Vehículos Activos en Parqueo</h3>
             <span className="ml-2 px-2.5 py-0.5 bg-green-100 text-green-700 text-sm font-bold rounded-full">
               {vehicleSummary.total}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">
-              Suscripcion: <strong>{vehicleSummary.subscription}</strong> | Por hora: <strong>{vehicleSummary.hourly}</strong>
+              Suscripción: <strong>{vehicleSummary.subscription}</strong> | Por hora: <strong>{vehicleSummary.hourly}</strong>
             </span>
             <button onClick={handleRefresh} className="text-gray-400 hover:text-gray-600" title="Actualizar">
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
@@ -135,7 +157,7 @@ export default function ReportesPage() {
           </div>
         </div>
         {activeVehicles.length === 0 ? (
-          <p className="text-center text-gray-400 py-6">No hay vehiculos activos en el parqueo</p>
+          <p className="text-center text-gray-400 py-6">No hay vehículos activos en el parqueo</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -168,7 +190,7 @@ export default function ReportesPage() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           v.access_type === 'subscription' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
                         }`}>
-                          {v.access_type === 'subscription' ? 'Suscripcion' : 'Por hora'}
+                          {v.access_type === 'subscription' ? 'Suscripción' : 'Por hora'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm">

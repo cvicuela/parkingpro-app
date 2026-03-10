@@ -8,8 +8,8 @@ import {
 
 const categoryConfig = {
   general: { label: 'General', icon: Building2, color: 'indigo', description: 'Datos del negocio y moneda' },
-  caja: { label: 'Caja Registradora', icon: Wallet, color: 'green', description: 'Umbrales y configuracion de caja' },
-  facturacion: { label: 'Facturacion', icon: Receipt, color: 'blue', description: 'ITBIS, NCF y comprobantes fiscales' },
+  caja: { label: 'Caja Registradora', icon: Wallet, color: 'green', description: 'Umbrales y configuración de caja' },
+  facturacion: { label: 'Facturación', icon: Receipt, color: 'blue', description: 'ITBIS, NCF y comprobantes fiscales' },
   antifraude: { label: 'Antifraude', icon: Shield, color: 'red', description: 'Limites de reembolso y proteccion' },
   notificaciones: { label: 'Notificaciones', icon: Bell, color: 'amber', description: 'Alertas y correos' },
   parqueo: { label: 'Parqueo', icon: Globe, color: 'purple', description: 'Espacios, tolerancia y mora' },
@@ -18,16 +18,16 @@ const categoryConfig = {
 const fieldConfig = {
   business_name: { label: 'Nombre del Negocio', type: 'text', placeholder: 'ParkingPro' },
   business_rnc: { label: 'RNC', type: 'text', placeholder: '000-000000-0' },
-  business_address: { label: 'Direccion', type: 'text', placeholder: 'Av. Principal #123' },
-  business_phone: { label: 'Telefono', type: 'text', placeholder: '809-000-0000' },
+  business_address: { label: 'Dirección', type: 'text', placeholder: 'Av. Principal #123' },
+  business_phone: { label: 'Teléfono', type: 'text', placeholder: '809-000-0000' },
   currency: { label: 'Moneda', type: 'select', options: ['DOP', 'USD', 'EUR'] },
-  cash_diff_threshold: { label: 'Umbral diferencia de caja (RD$)', type: 'number', hint: 'Diferencias mayores requieren aprobacion del supervisor' },
+  cash_diff_threshold: { label: 'Umbral diferencia de caja (RD$)', type: 'number', hint: 'Diferencias mayores requieren aprobación del supervisor' },
   multi_register_enabled: { label: 'Multiples cajas simultaneas', type: 'toggle' },
   tax_rate: { label: 'Tasa ITBIS', type: 'number', hint: '0.18 = 18%' },
   ncf_series_consumer: { label: 'Serie NCF - Consumidor Final', type: 'text', hint: 'Ej: B01' },
   ncf_series_fiscal: { label: 'Serie NCF - Valor Fiscal', type: 'text', hint: 'Ej: B14' },
-  ncf_series_credit: { label: 'Serie NCF - Nota de Credito', type: 'text', hint: 'Ej: B04' },
-  refund_limit_operator: { label: 'Limite reembolso por operador (RD$)', type: 'number', hint: 'Maximo que un operador puede reembolsar sin aprobacion' },
+  ncf_series_credit: { label: 'Serie NCF - Nota de Crédito', type: 'text', hint: 'Ej: B04' },
+  refund_limit_operator: { label: 'Limite reembolso por operador (RD$)', type: 'number', hint: 'Maximo que un operador puede reembolsar sin aprobación' },
   refund_daily_multiplier: { label: 'Multiplicador diario de reembolso', type: 'number', hint: 'Tope diario = limite x multiplicador' },
   notification_email_1_enabled: { label: 'Email 1 - Activo', type: 'toggle', hint: 'Activar/desactivar envio al Email 1' },
   notification_email_1: { label: 'Email 1 (Principal)', type: 'email', placeholder: 'admin@empresa.com', hint: 'Email principal para alertas criticas' },
@@ -234,8 +234,8 @@ export default function ConfigPage() {
         <div className="flex items-center gap-3">
           <Settings className="text-indigo-600" size={28} />
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Configuracion</h2>
-            <p className="text-sm text-gray-500">Administra los parametros del sistema</p>
+            <h2 className="text-2xl font-bold text-gray-800">Configuración</h2>
+            <p className="text-sm text-gray-500">Administra los parámetros del sistema</p>
           </div>
         </div>
         {changedCount > 0 && (
@@ -328,7 +328,7 @@ export default function ConfigPage() {
                 </div>
                 <div className="text-left">
                   <h3 className="font-semibold text-gray-800">Otros</h3>
-                  <p className="text-xs text-gray-400">Configuraciones adicionales</p>
+                  <p className="text-xs text-gray-400">Configuraciónes adicionales</p>
                 </div>
               </div>
               {expandedCategories._other ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronRight size={20} className="text-gray-400" />}

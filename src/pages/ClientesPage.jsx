@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { customersAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { Plus, Search, Edit2, Trash2, X, Building2, User } from 'lucide-react';
+import { SkeletonTable } from '../components/SkeletonLoader';
+import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
+import { formatDate } from '../services/formatDate';
+
+const PAGE_SIZE = 15;
 
 function CustomerModal({ customer, onClose, onSave }) {
   const [form, setForm] = useState(customer || {
@@ -62,7 +68,7 @@ function CustomerModal({ customer, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
             <input value={form.address || ''} onChange={set('address')}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
@@ -116,6 +122,8 @@ export default function ClientesPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [page, setPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const fetchCustomers = async () => {
     try {
@@ -126,18 +134,22 @@ export default function ClientesPage() {
     }
   };
 
-  useEffect(() => { fetchCustomers(); }, [search]);
+  useEffect(() => { fetchCustomers(); setPage(1); }, [search]);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Eliminar este cliente?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await customersAPI.delete(id);
+      await customersAPI.delete(confirmDelete);
       toast.success('Cliente eliminado');
+      setConfirmDelete(null);
       fetchCustomers();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al eliminar');
+      setConfirmDelete(null);
     }
   };
+
+  const paginatedCustomers = customers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -161,59 +173,62 @@ export default function ClientesPage() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>
+          <SkeletonTable rows={8} cols={5} />
         ) : customers.length === 0 ? (
           <p className="p-8 text-center text-gray-400">No se encontraron clientes</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-sm text-gray-500">
-                <tr>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Documento</th>
-                  <th className="py-3 px-4">Tipo</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        {c.is_company ? <Building2 size={16} className="text-blue-500" /> : <User size={16} className="text-gray-400" />}
-                        <div>
-                          <p className="font-medium">{c.first_name} {c.last_name}</p>
-                          {c.company_name && <p className="text-xs text-gray-400">{c.company_name}</p>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{c.id_document || '-'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_company ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {c.is_company ? 'Empresa' : 'Personal'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-500">
-                      {new Date(c.created_at).toLocaleDateString('es-DO')}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => { setEditing(c); setShowModal(true); }}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(c.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-sm text-gray-500">
+                  <tr>
+                    <th className="py-3 px-4">Cliente</th>
+                    <th className="py-3 px-4">Documento</th>
+                    <th className="py-3 px-4">Tipo</th>
+                    <th className="py-3 px-4">Fecha</th>
+                    <th className="py-3 px-4 text-right">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedCustomers.map((c) => (
+                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          {c.is_company ? <Building2 size={16} className="text-blue-500" /> : <User size={16} className="text-gray-400" />}
+                          <div>
+                            <p className="font-medium">{c.first_name} {c.last_name}</p>
+                            {c.company_name && <p className="text-xs text-gray-400">{c.company_name}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">{c.id_document || '-'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_company ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                          {c.is_company ? 'Empresa' : 'Personal'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-500">
+                        {formatDate(c.created_at)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => { setEditing(c); setShowModal(true); }} title="Editar cliente"
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => setConfirmDelete(c.id)} title="Eliminar cliente"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination currentPage={page} totalItems={customers.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </>
         )}
       </div>
 
@@ -224,6 +239,15 @@ export default function ClientesPage() {
           onSave={() => { setShowModal(false); setEditing(null); fetchCustomers(); }}
         />
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Eliminar Cliente"
+        message="¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }
