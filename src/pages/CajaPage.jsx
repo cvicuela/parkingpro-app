@@ -4,6 +4,7 @@ import { Wallet, Lock, CheckCircle, AlertTriangle, Plus, Minus, List, CreditCard
 import { cashAPI } from '../services/api';
 
 const DENOMINATIONS = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
+const fmtMoney = (v) => `RD$ ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CajaPage() {
   const [activeRegister, setActiveRegister] = useState(null);
@@ -102,7 +103,7 @@ export default function CajaPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Wallet size={24} />Cuadre de Caja</h1>
         <div className="text-sm text-gray-500">
-          Umbral alerta: <strong>RD${limits.cashDiffThreshold}</strong> · Límite reembolso operador: <strong>RD${limits.refundLimitOperator}</strong>
+          Umbral alerta: <strong>{fmtMoney(limits.cashDiffThreshold)}</strong> · Límite reembolso operador: <strong>{fmtMoney(limits.refundLimitOperator)}</strong>
         </div>
       </div>
 
@@ -127,7 +128,7 @@ export default function CajaPage() {
             ].map(({ label, value, color }) => (
               <div key={label} className={`bg-${color}-50 border border-${color}-200 rounded-lg p-4`}>
                 <p className={`text-xs text-${color}-600 font-medium uppercase`}>{label}</p>
-                <p className={`text-2xl font-bold text-${color}-700`}>RD${value.toFixed(2)}</p>
+                <p className={`text-2xl font-bold text-${color}-700`}>{fmtMoney(value)}</p>
               </div>
             ))}
           </div>
@@ -139,21 +140,21 @@ export default function CajaPage() {
                 <Banknote size={16} className="text-green-600" />
                 <div>
                   <p className="text-xs text-gray-500">Efectivo</p>
-                  <p className="text-lg font-bold text-green-700">RD${expectedCash.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-green-700">{fmtMoney(expectedCash)}</p>
                 </div>
               </div>
               <div className="bg-white border border-purple-200 rounded-lg p-3 flex items-center gap-2">
                 <CreditCard size={16} className="text-purple-600" />
                 <div>
                   <p className="text-xs text-gray-500">Tarjeta</p>
-                  <p className="text-lg font-bold text-purple-700">RD${totalCard.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-purple-700">{fmtMoney(totalCard)}</p>
                 </div>
               </div>
               <div className="bg-white border border-cyan-200 rounded-lg p-3 flex items-center gap-2">
                 <ArrowRightLeft size={16} className="text-cyan-600" />
                 <div>
                   <p className="text-xs text-gray-500">Transferencia</p>
-                  <p className="text-lg font-bold text-cyan-700">RD${totalTransfer.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-cyan-700">{fmtMoney(totalTransfer)}</p>
                 </div>
               </div>
             </div>
@@ -191,7 +192,7 @@ export default function CajaPage() {
                       </div>
                     </div>
                     <span className={`font-semibold ${t.direction === 'in' ? 'text-green-600' : 'text-red-600'}`}>
-                      {t.direction === 'in' ? '+' : '-'}RD${parseFloat(t.amount).toFixed(2)}
+                      {t.direction === 'in' ? '+' : '-'}{fmtMoney(parseFloat(t.amount))}
                     </span>
                   </div>
                 ))
@@ -248,14 +249,14 @@ export default function CajaPage() {
                   <tbody>
                     {DENOMINATIONS.map(d => (
                       <tr key={d} className="border-t">
-                        <td className="px-4 py-2 font-medium">RD${d}</td>
+                        <td className="px-4 py-2 font-medium">RD$ {d.toLocaleString('en-US')}</td>
                         <td className="px-4 py-2">
                           <input type="number" min="0" placeholder="0"
                             value={denomCounts[d] || ''}
                             onChange={e => setDenomCounts(p => ({ ...p, [d]: e.target.value }))}
                             className="w-20 mx-auto block text-center border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                         </td>
-                        <td className="px-4 py-2 text-right">RD${(d * (parseInt(denomCounts[d]) || 0)).toFixed(2)}</td>
+                        <td className="px-4 py-2 text-right">{fmtMoney(d * (parseInt(denomCounts[d]) || 0))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -263,25 +264,25 @@ export default function CajaPage() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span>Efectivo esperado en caja:</span><span className="font-semibold">RD${expectedCash.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Efectivo contado:</span><span className="font-semibold text-indigo-600">RD${countedBalance.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Efectivo esperado en caja:</span><span className="font-semibold">{fmtMoney(expectedCash)}</span></div>
+                <div className="flex justify-between"><span>Efectivo contado:</span><span className="font-semibold text-indigo-600">{fmtMoney(countedBalance)}</span></div>
                 <div className={`flex justify-between font-bold ${Math.abs(closeDifference) > limits.cashDiffThreshold ? 'text-red-600' : 'text-green-600'}`}>
                   <span>Diferencia:</span>
-                  <span>RD${closeDifference.toFixed(2)}</span>
+                  <span>{fmtMoney(closeDifference)}</span>
                 </div>
                 {Math.abs(closeDifference) > limits.cashDiffThreshold && (
                   <div className="flex items-center gap-2 text-orange-600 bg-orange-50 rounded p-2 mt-2">
                     <AlertTriangle size={16} />
-                    <span>Diferencia supera RD${limits.cashDiffThreshold} — requiere aprobación del supervisor</span>
+                    <span>Diferencia supera {fmtMoney(limits.cashDiffThreshold)} — requiere aprobacion del supervisor</span>
                   </div>
                 )}
                 {/* Otros ingresos no contados en efectivo */}
                 {(totalCard > 0 || totalTransfer > 0) && (
                   <div className="bg-blue-50 rounded p-2 mt-2 space-y-1">
                     <p className="text-xs font-medium text-blue-700">Otros ingresos (no se cuentan en efectivo):</p>
-                    {totalCard > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Tarjeta:</span><span className="font-semibold">RD${totalCard.toFixed(2)}</span></div>}
-                    {totalTransfer > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Transferencia:</span><span className="font-semibold">RD${totalTransfer.toFixed(2)}</span></div>}
-                    <div className="flex justify-between text-xs pt-1 border-t border-blue-200"><span className="text-blue-600 font-medium">Total general:</span><span className="font-bold">RD${(totalIn - totalOut).toFixed(2)}</span></div>
+                    {totalCard > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Tarjeta:</span><span className="font-semibold">{fmtMoney(totalCard)}</span></div>}
+                    {totalTransfer > 0 && <div className="flex justify-between text-xs"><span className="text-blue-600">Transferencia:</span><span className="font-semibold">{fmtMoney(totalTransfer)}</span></div>}
+                    <div className="flex justify-between text-xs pt-1 border-t border-blue-200"><span className="text-blue-600 font-medium">Total general:</span><span className="font-bold">{fmtMoney(totalIn - totalOut)}</span></div>
                   </div>
                 )}
               </div>

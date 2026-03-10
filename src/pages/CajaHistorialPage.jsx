@@ -4,6 +4,8 @@ import { History, CheckCircle, AlertTriangle, Eye, RefreshCw, Search } from 'luc
 import { cashAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+const fmtMoney = (v) => `RD$ ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function CajaHistorialPage() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
@@ -82,7 +84,7 @@ export default function CajaHistorialPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-red-600 font-semibold">
-                    Diferencia: RD${Math.abs(parseFloat(p.difference)).toFixed(2)}
+                    Diferencia: {fmtMoney(Math.abs(parseFloat(p.difference)))}
                   </span>
                   <button onClick={() => viewDetails(p)}
                     className="px-3 py-1 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700">
@@ -126,10 +128,10 @@ export default function CajaHistorialPage() {
                     </td>
                     <td className="px-4 py-3 font-medium">{h.operator_name || h.operator_email}</td>
                     <td className="px-4 py-3 text-gray-500">{h.name}</td>
-                    <td className="px-4 py-3">RD${parseFloat(h.expected_balance || 0).toFixed(2)}</td>
-                    <td className="px-4 py-3">RD${parseFloat(h.counted_balance || 0).toFixed(2)}</td>
+                    <td className="px-4 py-3">{fmtMoney(h.expected_balance)}</td>
+                    <td className="px-4 py-3">{fmtMoney(h.counted_balance)}</td>
                     <td className={`px-4 py-3 font-semibold ${parseFloat(h.difference || 0) < 0 ? 'text-red-600' : parseFloat(h.difference || 0) > 0 ? 'text-blue-600' : 'text-green-600'}`}>
-                      RD${parseFloat(h.difference || 0).toFixed(2)}
+                      {fmtMoney(h.difference)}
                     </td>
                     <td className="px-4 py-3 text-center">{h.payment_count}</td>
                     <td className="px-4 py-3">
@@ -166,14 +168,14 @@ export default function CajaHistorialPage() {
               <div className="flex justify-between"><span className="text-gray-500">Caja:</span><span>{selected.name}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Apertura:</span><span>{selected.opened_at ? new Date(selected.opened_at).toLocaleString('es-DO') : '—'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Cierre:</span><span>{selected.closed_at ? new Date(selected.closed_at).toLocaleString('es-DO') : '—'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Fondo inicial:</span><span>RD${parseFloat(selected.opening_balance || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Esperado:</span><span>RD${parseFloat(selected.expected_balance || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Contado:</span><span>RD${parseFloat(selected.counted_balance || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Fondo inicial:</span><span>{fmtMoney(selected.opening_balance)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Esperado:</span><span>{fmtMoney(selected.expected_balance)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Contado:</span><span>{fmtMoney(selected.counted_balance)}</span></div>
               <div className={`flex justify-between font-bold ${parseFloat(selected.difference || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                <span>Diferencia:</span><span>RD${parseFloat(selected.difference || 0).toFixed(2)}</span>
+                <span>Diferencia:</span><span>{fmtMoney(selected.difference)}</span>
               </div>
-              <div className="flex justify-between"><span className="text-gray-500">Cobros:</span><span>{selected.payment_count} (RD${parseFloat(selected.total_payments || 0).toFixed(2)})</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Reembolsos:</span><span>{selected.refund_count} (RD${parseFloat(selected.total_refunds || 0).toFixed(2)})</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Cobros:</span><span>{selected.payment_count} ({fmtMoney(selected.total_payments)})</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Reembolsos:</span><span>{selected.refund_count} ({fmtMoney(selected.total_refunds)})</span></div>
             </div>
 
             {/* Transacciones */}
@@ -185,7 +187,7 @@ export default function CajaHistorialPage() {
                       <span className={t.direction === 'in' ? 'text-green-600' : 'text-red-600'}>{t.direction === 'in' ? '+' : '-'}</span>
                       <span className="ml-1">{t.description || t.type}</span>
                     </div>
-                    <span className="font-mono">RD${parseFloat(t.amount).toFixed(2)}</span>
+                    <span className="font-mono">{fmtMoney(t.amount)}</span>
                   </div>
                 ))}
               </div>
