@@ -48,21 +48,35 @@ export default function FacturasPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handlePrint = (invoice) => {
+    // Load company info from settings cache
+    let companyName = 'ParkingPro', companyRNC = '', companyAddress = '', companyPhone = '';
+    try {
+      const s = JSON.parse(localStorage.getItem('pp_settings') || '{}');
+      companyName = s.business_name || s.parking_name || 'ParkingPro';
+      companyRNC = s.business_rnc || '';
+      companyAddress = s.business_address || '';
+      companyPhone = s.business_phone || '';
+    } catch {}
+
     const win = window.open('', '_blank');
     win.document.write(`
       <html><head><title>Factura ${escapeHtml(invoice.ncf)}</title>
       <style>
         body { font-family: monospace; max-width: 400px; margin: 0 auto; padding: 20px; }
-        h2 { text-align: center; } hr { border-top: 1px dashed #000; }
+        h2 { text-align: center; margin-bottom: 2px; } hr { border-top: 1px dashed #000; }
         .row { display: flex; justify-content: space-between; }
         .total { font-size: 1.2em; font-weight: bold; }
+        .center { text-align: center; } .small { font-size: 0.8em; color: #555; }
       </style></head>
       <body>
-        <h2>ParkingPro</h2>
-        <p style="text-align:center">FACTURA DE VENTA<br>${escapeHtml(invoice.ncf)}</p>
+        <h2>${escapeHtml(companyName)}</h2>
+        ${companyAddress ? `<p class="center small">${escapeHtml(companyAddress)}</p>` : ''}
+        ${companyRNC ? `<p class="center small">RNC: ${escapeHtml(companyRNC)}</p>` : ''}
+        ${companyPhone ? `<p class="center small">Tel: ${escapeHtml(companyPhone)}</p>` : ''}
+        <p style="text-align:center;margin-top:8px"><strong>FACTURA DE VENTA</strong><br>${escapeHtml(invoice.ncf)}</p>
         <hr/>
         <p>Cliente: ${escapeHtml(invoice.customer_name)}</p>
-        ${invoice.rnc ? `<p>RNC: ${escapeHtml(invoice.rnc)}</p>` : ''}
+        ${invoice.rnc ? `<p>RNC Cliente: ${escapeHtml(invoice.rnc)}</p>` : ''}
         <p>Fecha: ${new Date(invoice.created_at).toLocaleString('es-DO')}</p>
         <hr/>
         ${JSON.parse(invoice.items || '[]').map(item =>

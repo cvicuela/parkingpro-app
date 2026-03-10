@@ -422,8 +422,10 @@ export default function ControlAccesoPage() {
               </div>
               <button
                 onClick={() => {
+                  let cn = 'ParkingPro', crnc = '', caddr = '', cph = '';
+                  try { const s = JSON.parse(localStorage.getItem('pp_settings') || '{}'); cn = s.business_name || s.parking_name || 'ParkingPro'; crnc = s.business_rnc || ''; caddr = s.business_address || ''; cph = s.business_phone || ''; } catch {}
                   const w = window.open('', '_blank');
-                  w.document.write(`<html><head><title>Ticket ${escapeHtml(qrModal.plate)}</title><style>body{text-align:center;font-family:sans-serif;padding:20px}img{width:250px}h1{font-size:28px;margin:10px 0}</style></head><body><h1>${escapeHtml(qrModal.plate)}</h1><img src="${escapeHtml(qrModal.qr)}" /><p>Entrada: ${escapeHtml(qrModal.time)}</p><p>${escapeHtml(qrModal.type)} ${qrModal.plan ? '- ' + escapeHtml(qrModal.plan) : ''}</p><p style="margin-top:20px;font-size:12px;color:#999">ParkingPro</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
+                  w.document.write(`<html><head><title>Ticket ${escapeHtml(qrModal.plate)}</title><style>body{text-align:center;font-family:sans-serif;padding:20px}img{width:250px}h1{font-size:28px;margin:10px 0}.small{font-size:12px;color:#555}</style></head><body><h2>${escapeHtml(cn)}</h2>${caddr ? `<p class="small">${escapeHtml(caddr)}</p>` : ''}${crnc ? `<p class="small">RNC: ${escapeHtml(crnc)}</p>` : ''}${cph ? `<p class="small">Tel: ${escapeHtml(cph)}</p>` : ''}<hr/><p><strong>TICKET DE ENTRADA</strong></p><h1>${escapeHtml(qrModal.plate)}</h1><img src="${escapeHtml(qrModal.qr)}" /><p>Entrada: ${escapeHtml(qrModal.time)}</p><p>${escapeHtml(qrModal.type)} ${qrModal.plan ? '- ' + escapeHtml(qrModal.plan) : ''}</p><p style="margin-top:20px;font-size:12px;color:#999">${escapeHtml(cn)} - Gracias por su visita</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
                   w.document.close();
                 }}
                 className="flex items-center gap-2 mx-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"

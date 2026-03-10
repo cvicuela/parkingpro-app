@@ -62,6 +62,8 @@ export default function ConfigPage() {
         vals[s.key] = typeof v === 'string' ? v : (v !== null && v !== undefined ? JSON.stringify(v) : '');
       });
       setEditValues(vals);
+      // Cache settings in localStorage for printService (company name, RNC, etc.)
+      try { localStorage.setItem('pp_settings', JSON.stringify(vals)); } catch {}
       // Expand all categories that have settings
       const cats = {};
       items.forEach(s => { cats[s.category || 'general'] = true; });
@@ -81,6 +83,12 @@ export default function ConfigPage() {
       await settingsAPI.update(key, editValues[key]);
       toast.success(`${fieldConfig[key]?.label || key} actualizado`);
       setHasChanges(prev => ({ ...prev, [key]: false }));
+      // Update localStorage cache for printService
+      try {
+        const cached = JSON.parse(localStorage.getItem('pp_settings') || '{}');
+        cached[key] = editValues[key];
+        localStorage.setItem('pp_settings', JSON.stringify(cached));
+      } catch {}
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al actualizar');
     } finally {
