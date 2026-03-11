@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { reportsAPI, plansAPI } from '../services/api';
+import * as XLSX from 'xlsx';
 import {
   DollarSign, Users, Car, AlertTriangle, BarChart3, Clock, RefreshCw,
   TrendingUp, TrendingDown, Minus, Download, FileText, Wallet, Calendar,
@@ -174,19 +175,54 @@ function ExportButton({ period, customFrom, customTo, activeTab }) {
     try {
       const params = { period };
       if (period === 'custom') { params.from = customFrom; params.to = customTo; }
+      const type = exportTypeMap[activeTab] || 'payments';
+      const dateStr = new Date().toISOString().slice(0, 10);
 
-      if (format === 'csv') {
-        const type = exportTypeMap[activeTab] || 'payments';
-        const res = await reportsAPI.incidents({ ...params }); // fallback
-        // Use the CSV export endpoint
-        const link = document.createElement('a');
-        const baseUrl = import.meta.env.VITE_API_URL || '/api/v1';
-        const token = localStorage.getItem('pp_token');
-        link.href = `${baseUrl}/reports/export/${type}?period=${params.period}${params.from ? `&from=${params.from}` : ''}${params.to ? `&to=${params.to}` : ''}&token=${token}`;
-        link.download = `reporte_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-      } else {
-        // PDF/Excel: generate printable HTML
+      if (format === 'csv' || format === 'excel') {
+        // Fetch structured data from backend CSV export endpoint
+        const res = await reportsAPI.exportCsv(type, params);
+        const csvData = res.data?.data;
+
+        if (!csvData || !csvData.rows || csvData.rows.length === 0) {
+          alert('No hay datos para exportar en el periodo seleccionado');
+          return;
+        }
+
+        const headers = csvData.headers || Object.keys(csvData.rows[0]);
+        const rows = csvData.rows.map(row =>
+          headers.map(h => {
+            const val = row[h];
+            if (val === null || val === undefined) return '';
+            return val;
+          })
+        );
+
+        if (format === 'csv') {
+          const csvContent = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+          const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${csvData.filename || type}_${dateStr}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } else {
+          // Real .xlsx using SheetJS
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+          // Auto-size columns
+          ws['!cols'] = headers.map((h, i) => {
+            const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] || '').length));
+            return { wch: Math.min(maxLen + 2, 40) };
+          });
+
+          const wb = XLSX.utils.book_new();
+          const tabLabel = TABS.find(t => t.key === activeTab)?.label || activeTab;
+          XLSX.utils.book_append_sheet(wb, ws, tabLabel.substring(0, 31));
+          XLSX.writeFile(wb, `${csvData.filename || type}_${dateStr}.xlsx`);
+        }
+      } else if (format === 'pdf') {
+        // PDF: generate printable HTML
         const tabLabel = TABS.find(t => t.key === activeTab)?.label || activeTab;
         const periodLabel = PERIOD_OPTIONS.find(p => p.key === period)?.label || period;
         const settings = JSON.parse(localStorage.getItem('pp_settings') || '{}');
@@ -210,32 +246,20 @@ function ExportButton({ period, customFrom, customTo, activeTab }) {
             .kpi .label { font-size: 11px; color: #9ca3af; }
             .kpi .value { font-size: 20px; font-weight: 700; color: #111827; }
             @media print { body { padding: 20px; } .no-print { display: none; } }
-            ${format === 'excel' ? '' : ''}
           </style></head><body>
           <div class="header">
             <div><h1>${businessName}</h1><p style="margin:4px 0 0;font-size:14px;color:#374151">${tabLabel}</p></div>
-            <div class="meta"><p>Período: ${periodLabel}${period === 'custom' ? ` (${customFrom} — ${customTo})` : ''}</p>
+            <div class="meta"><p>Periodo: ${periodLabel}${period === 'custom' ? ` (${customFrom} — ${customTo})` : ''}</p>
             <p>Generado: ${new Date().toLocaleString('es-DO')}</p></div>
           </div>
           ${printHtml}
-          <script>${format === 'pdf' ? 'window.print();' : ''}</script>
+          <script>window.print();</script>
           </body></html>`);
         win.document.close();
-
-        if (format === 'excel') {
-          // Trigger download as .xls (HTML table format compatible with Excel)
-          const blob = new Blob([win.document.documentElement.outerHTML], { type: 'application/vnd.ms-excel' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `reporte_${activeTab}_${new Date().toISOString().slice(0, 10)}.xls`;
-          a.click();
-          URL.revokeObjectURL(url);
-          win.close();
-        }
       }
     } catch (e) {
       console.error('Export error:', e);
+      alert('Error al exportar: ' + (e.response?.data?.error || e.message));
     } finally {
       setExporting(false);
     }
@@ -254,7 +278,7 @@ function ExportButton({ period, customFrom, customTo, activeTab }) {
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
           {[
             { fmt: 'pdf', label: 'PDF', icon: FileText },
-            { fmt: 'excel', label: 'Excel (.xls)', icon: BarChart3 },
+            { fmt: 'excel', label: 'Excel (.xlsx)', icon: BarChart3 },
             { fmt: 'csv', label: 'CSV', icon: Download },
           ].map(({ fmt: f, label, icon: Ic }) => (
             <button key={f} onClick={() => handleExport(f)}
