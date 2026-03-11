@@ -3,7 +3,8 @@ import { toast } from 'react-toastify';
 import {
   Bell, Send, Mail, MessageCircle, Smartphone, CheckCircle,
   XCircle, Clock, Filter, RefreshCw, ChevronLeft, ChevronRight,
-  Plus, X
+  Plus, X, FileText, AlertTriangle, CreditCard, CalendarClock,
+  Zap, Eye
 } from 'lucide-react';
 import { notificationsAPI } from '../services/api';
 
@@ -18,6 +19,18 @@ const STATUS_CONFIG = {
   sent: { icon: CheckCircle, label: 'Enviado', color: 'green' },
   failed: { icon: XCircle, label: 'Fallido', color: 'red' },
   pending: { icon: Clock, label: 'Pendiente', color: 'yellow' },
+};
+
+const TEMPLATE_ICONS = {
+  cash_alert: AlertTriangle,
+  payment_confirm: CreditCard,
+  subscription_expiry: CalendarClock,
+};
+
+const TEMPLATE_COLORS = {
+  cash_alert: 'red',
+  payment_confirm: 'emerald',
+  subscription_expiry: 'amber',
 };
 
 function StatCard({ label, value, icon: Icon, color = 'gray' }) {
@@ -50,6 +63,7 @@ export default function NotificacionesPage() {
   const [filterChannel, setFilterChannel] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showSendModal, setShowSendModal] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const limit = 20;
 
   const loadData = useCallback(async () => {
@@ -77,6 +91,20 @@ export default function NotificacionesPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const handleProcessQueue = async () => {
+    try {
+      setProcessing(true);
+      const res = await notificationsAPI.processQueue();
+      const processed = res.data?.data?.processed || 0;
+      toast.success(`${processed} email(s) procesado(s)`);
+      loadData();
+    } catch (err) {
+      toast.error('Error procesando cola: ' + err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -84,12 +112,21 @@ export default function NotificacionesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notificaciones</h1>
-          <p className="text-sm text-gray-500 mt-1">Historial y envío de notificaciones a clientes</p>
+          <p className="text-sm text-gray-500 mt-1">Historial y envio de notificaciones a clientes</p>
         </div>
-        <button onClick={() => setShowSendModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors">
-          <Plus size={16} /> Nueva Notificación
-        </button>
+        <div className="flex gap-2">
+          {stats?.pending > 0 && (
+            <button onClick={handleProcessQueue} disabled={processing}
+              className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors text-sm">
+              <Zap size={16} className={processing ? 'animate-pulse' : ''} />
+              {processing ? 'Procesando...' : `Procesar ${stats.pending} pendiente(s)`}
+            </button>
+          )}
+          <button onClick={() => setShowSendModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors">
+            <Plus size={16} /> Nueva Notificacion
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -170,6 +207,11 @@ export default function NotificacionesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="truncate max-w-[200px]">{n.subject || n.body_preview || '-'}</p>
+                      {n.template_id && (
+                        <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-indigo-500">
+                          <FileText size={10} /> {n.template_id}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 capitalize">{n.type}</td>
                     <td className="px-4 py-3">
@@ -215,93 +257,261 @@ export default function NotificacionesPage() {
   );
 }
 
+// ─── SEND MODAL WITH TEMPLATE SUPPORT ────────────────────────────────────────
+
+const TEMPLATE_FIELDS = {
+  cash_alert: [
+    { key: 'registerName', label: 'Nombre de caja', placeholder: 'Caja Principal', type: 'text' },
+    { key: 'operatorName', label: 'Operador', placeholder: 'Juan Perez', type: 'text' },
+    { key: 'expectedBalance', label: 'Saldo esperado (RD$)', placeholder: '15000', type: 'number' },
+    { key: 'countedBalance', label: 'Saldo contado (RD$)', placeholder: '14500', type: 'number' },
+    { key: 'difference', label: 'Diferencia (RD$)', placeholder: '-500', type: 'number' },
+  ],
+  payment_confirm: [
+    { key: 'customerName', label: 'Cliente', placeholder: 'Maria Garcia', type: 'text' },
+    { key: 'planName', label: 'Plan / Concepto', placeholder: 'Plan Mensual', type: 'text' },
+    { key: 'totalAmount', label: 'Monto total (RD$)', placeholder: '3500', type: 'number' },
+    { key: 'subtotal', label: 'Subtotal (RD$)', placeholder: '2966.10', type: 'number' },
+    { key: 'taxAmount', label: 'ITBIS (RD$)', placeholder: '533.90', type: 'number' },
+    { key: 'paymentMethod', label: 'Metodo de pago', placeholder: 'Efectivo', type: 'text' },
+    { key: 'vehiclePlate', label: 'Placa (opcional)', placeholder: 'A123456', type: 'text' },
+  ],
+  subscription_expiry: [
+    { key: 'customerName', label: 'Cliente', placeholder: 'Carlos Ramirez', type: 'text' },
+    { key: 'planName', label: 'Plan', placeholder: 'Plan Mensual Premium', type: 'text' },
+    { key: 'expiryDate', label: 'Fecha de vencimiento', placeholder: '15/04/2026', type: 'text' },
+    { key: 'daysRemaining', label: 'Dias restantes', placeholder: '5', type: 'number' },
+    { key: 'pricePerPeriod', label: 'Precio (RD$)', placeholder: '4500', type: 'number' },
+    { key: 'vehiclePlate', label: 'Placa (opcional)', placeholder: 'B789012', type: 'text' },
+    { key: 'isExpired', label: 'Ya vencida?', type: 'toggle' },
+  ],
+};
+
+const TEMPLATE_META = [
+  { id: 'cash_alert', name: 'Alerta de Cuadre de Caja', desc: 'Notifica diferencias en cierre de caja', color: 'red' },
+  { id: 'payment_confirm', name: 'Confirmacion de Pago', desc: 'Recibo de pago para clientes', color: 'emerald' },
+  { id: 'subscription_expiry', name: 'Vencimiento de Suscripcion', desc: 'Recordatorio de renovacion', color: 'amber' },
+];
+
 function SendNotificationModal({ onClose, onSent }) {
+  const [mode, setMode] = useState('manual'); // 'manual' | 'template'
   const [form, setForm] = useState({
-    channel: 'whatsapp',
+    channel: 'email',
     recipient: '',
     subject: '',
     body: '',
     type: 'manual',
   });
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateData, setTemplateData] = useState({});
   const [sending, setSending] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
 
   const handleSend = async () => {
-    if (!form.recipient || !form.body) {
-      toast.error('Destinatario y mensaje son requeridos');
-      return;
-    }
-    try {
-      setSending(true);
-      await notificationsAPI.send(form);
-      toast.success('Notificación encolada');
-      onSent();
-      onClose();
-    } catch (err) {
-      toast.error('Error: ' + err.message);
-    } finally {
-      setSending(false);
+    if (mode === 'template') {
+      if (!selectedTemplate) {
+        toast.error('Selecciona un template');
+        return;
+      }
+      if (!form.recipient) {
+        toast.error('Destinatario es requerido');
+        return;
+      }
+      try {
+        setSending(true);
+        // Parse numeric fields
+        const parsedData = { ...templateData };
+        TEMPLATE_FIELDS[selectedTemplate]?.forEach(f => {
+          if (f.type === 'number' && parsedData[f.key]) {
+            parsedData[f.key] = parseFloat(parsedData[f.key]);
+          }
+          if (f.type === 'toggle') {
+            parsedData[f.key] = parsedData[f.key] === true || parsedData[f.key] === 'true';
+          }
+        });
+
+        await notificationsAPI.send({
+          channel: 'email',
+          recipient: form.recipient,
+          templateId: selectedTemplate,
+          templateData: parsedData,
+          type: selectedTemplate,
+        });
+        toast.success('Email con template enviado');
+        onSent();
+        onClose();
+      } catch (err) {
+        toast.error('Error: ' + (err.response?.data?.error || err.message));
+      } finally {
+        setSending(false);
+      }
+    } else {
+      if (!form.recipient || !form.body) {
+        toast.error('Destinatario y mensaje son requeridos');
+        return;
+      }
+      try {
+        setSending(true);
+        await notificationsAPI.send(form);
+        toast.success('Notificacion enviada');
+        onSent();
+        onClose();
+      } catch (err) {
+        toast.error('Error: ' + (err.response?.data?.error || err.message));
+      } finally {
+        setSending(false);
+      }
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold">Nueva Notificación</h3>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
+          <h3 className="text-lg font-semibold">Nueva Notificacion</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Canal</label>
-            <select value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value })}
-              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">Email</option>
-              <option value="sms">SMS</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              {form.channel === 'email' ? 'Email' : 'Teléfono'}
-            </label>
-            <input type={form.channel === 'email' ? 'email' : 'tel'}
-              value={form.recipient}
-              onChange={e => setForm({ ...form, recipient: e.target.value })}
-              placeholder={form.channel === 'email' ? 'cliente@email.com' : '+18091234567'}
-              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
-          {form.channel === 'email' && (
-            <div>
-              <label className="text-sm font-medium text-gray-700">Asunto</label>
-              <input type="text" value={form.subject}
-                onChange={e => setForm({ ...form, subject: e.target.value })}
-                className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
-            </div>
-          )}
-          <div>
-            <label className="text-sm font-medium text-gray-700">Mensaje</label>
-            <textarea value={form.body} rows={4}
-              onChange={e => setForm({ ...form, body: e.target.value })}
-              placeholder="Escriba el mensaje..."
-              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Tipo</label>
-            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-              <option value="manual">Manual</option>
-              <option value="payment_reminder">Recordatorio de pago</option>
-              <option value="subscription_expiry">Vencimiento suscripción</option>
-              <option value="promotion">Promoción</option>
-              <option value="general">General</option>
-            </select>
+
+        {/* Mode Toggle */}
+        <div className="px-6 pt-4 shrink-0">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button onClick={() => setMode('manual')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+              <Send size={14} className="inline mr-2" />Mensaje Manual
+            </button>
+            <button onClick={() => setMode('template')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${mode === 'template' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+              <FileText size={14} className="inline mr-2" />Usar Template
+            </button>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+
+        {/* Body */}
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Recipient (always shown) */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              {mode === 'template' ? 'Email destinatario' : (form.channel === 'email' ? 'Email' : 'Telefono')}
+            </label>
+            <input type={mode === 'template' || form.channel === 'email' ? 'email' : 'tel'}
+              value={form.recipient}
+              onChange={e => setForm({ ...form, recipient: e.target.value })}
+              placeholder={mode === 'template' || form.channel === 'email' ? 'cliente@email.com' : '+18091234567'}
+              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+
+          {mode === 'manual' ? (
+            <>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Canal</label>
+                <select value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value })}
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="email">Email</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="sms">SMS</option>
+                </select>
+              </div>
+              {form.channel === 'email' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Asunto</label>
+                  <input type="text" value={form.subject}
+                    onChange={e => setForm({ ...form, subject: e.target.value })}
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Mensaje</label>
+                <textarea value={form.body} rows={4}
+                  onChange={e => setForm({ ...form, body: e.target.value })}
+                  placeholder="Escriba el mensaje..."
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Tipo</label>
+                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="manual">Manual</option>
+                  <option value="payment_reminder">Recordatorio de pago</option>
+                  <option value="subscription_expiry">Vencimiento suscripcion</option>
+                  <option value="promotion">Promocion</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Template Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Seleccionar Template</label>
+                <div className="grid grid-cols-1 gap-3">
+                  {TEMPLATE_META.map(t => {
+                    const TIcon = TEMPLATE_ICONS[t.id] || FileText;
+                    const isSelected = selectedTemplate === t.id;
+                    const colorMap = {
+                      red: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700', icon: 'bg-red-100 text-red-600' },
+                      emerald: { bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
+                      amber: { bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-700', icon: 'bg-amber-100 text-amber-600' },
+                    };
+                    const c = colorMap[t.color] || colorMap.amber;
+                    return (
+                      <button key={t.id} onClick={() => { setSelectedTemplate(t.id); setTemplateData({}); }}
+                        className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${isSelected ? `${c.bg} ${c.border}` : 'border-gray-200 hover:border-gray-300'}`}>
+                        <div className={`p-2 rounded-lg ${isSelected ? c.icon : 'bg-gray-100 text-gray-500'}`}>
+                          <TIcon size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold ${isSelected ? c.text : 'text-gray-800'}`}>{t.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{t.desc}</p>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle size={18} className={c.text} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Template Fields */}
+              {selectedTemplate && TEMPLATE_FIELDS[selectedTemplate] && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm font-medium text-gray-700 border-t pt-3">Datos del Template</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {TEMPLATE_FIELDS[selectedTemplate].map(f => (
+                      <div key={f.key} className={f.type === 'toggle' ? 'col-span-2' : ''}>
+                        <label className="text-xs font-medium text-gray-600">{f.label}</label>
+                        {f.type === 'toggle' ? (
+                          <label className="mt-1 flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox"
+                              checked={templateData[f.key] === true}
+                              onChange={e => setTemplateData({ ...templateData, [f.key]: e.target.checked })}
+                              className="w-4 h-4 rounded text-indigo-600" />
+                            <span className="text-sm text-gray-600">Si</span>
+                          </label>
+                        ) : (
+                          <input type={f.type === 'number' ? 'number' : 'text'}
+                            step={f.type === 'number' ? '0.01' : undefined}
+                            value={templateData[f.key] || ''}
+                            onChange={e => setTemplateData({ ...templateData, [f.key]: e.target.value })}
+                            placeholder={f.placeholder}
+                            className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
           <button onClick={handleSend} disabled={sending}
             className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm">
-            <Send size={14} /> {sending ? 'Enviando...' : 'Enviar'}
+            <Send size={14} /> {sending ? 'Enviando...' : (mode === 'template' ? 'Enviar con Template' : 'Enviar')}
           </button>
         </div>
       </div>

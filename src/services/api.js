@@ -201,4 +201,7 @@ export const notificationsAPI = {
   list: (params) => api.get('/notifications', { params }),
   stats: () => api.get('/notifications/stats'),
   send: (data) => api.post('/notifications', data),
+  templates: () => api.get('/notifications/templates'),
+  sendAlert: (data) => api.post('/notifications/send-alert', data),
+  processQueue: () => api.post('/notifications/process-queue'),
 };
