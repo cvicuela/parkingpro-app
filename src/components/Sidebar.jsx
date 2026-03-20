@@ -51,12 +51,12 @@ export default memo(function Sidebar({ open, onClose }) {
             <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-bold text-lg">P</div>
             <span className="text-xl font-bold">ParkingPro</span>
           </div>
-          <button onClick={onClose} className="md:hidden text-white/80 hover:text-white">
+          <button onClick={onClose} className="md:hidden text-white/80 hover:text-white" aria-label="Cerrar menú">
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 py-4 overflow-y-auto">
+        <nav className="flex-1 py-4 overflow-y-auto" role="navigation" aria-label="Navegación principal">
           {visibleItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}

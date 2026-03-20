@@ -26,7 +26,7 @@ export default memo(function Header({ onMenuClick }) {
   return (
     <header className="header-dark shadow-lg border-b border-slate-700 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <button onClick={onMenuClick} className="md:hidden text-slate-300 hover:text-white">
+        <button onClick={onMenuClick} className="md:hidden text-slate-300 hover:text-white" aria-label="Abrir menú de navegación">
           <Menu size={24} />
         </button>
         <h1 className="text-lg font-semibold text-white hidden md:block">
@@ -47,7 +47,7 @@ export default memo(function Header({ onMenuClick }) {
           </span>
         )}
 
-        <button className="relative text-slate-400 hover:text-white">
+        <button className="relative text-slate-400 hover:text-white" aria-label="Notificaciones">
           <Bell size={20} />
         </button>
 
