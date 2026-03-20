@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reportsAPI, plansAPI, accessAPI } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
+import { toast } from 'react-toastify';
 import { DollarSign, Users, Car, AlertTriangle, TrendingUp, LogIn, LogOut } from 'lucide-react';
 import PushNotificationToggle from '../components/PushNotificationToggle';
 import SessionStatusBadge from '../components/SessionStatusBadge';
@@ -385,9 +386,29 @@ export default function DashboardPage() {
     socket.on('session_update', (data) => {
       if (data.sessions) setSessions(data.sessions);
     });
+    socket.on('vehicle_entry', (data) => {
+      toast.info(`Entrada: ${data.plate}`, { autoClose: 3000 });
+      fetchData();
+    });
+    socket.on('vehicle_exit', (data) => {
+      toast.info(`Salida: ${data.plate}`, { autoClose: 3000 });
+      fetchData();
+    });
+    socket.on('payment_received', (data) => {
+      toast.success(`Pago recibido: RD$${parseFloat(data.amount).toLocaleString()}`, { autoClose: 3000 });
+    });
+    socket.on('incident_created', (data) => {
+      toast.warn(`Nuevo incidente: ${data.description}`, { autoClose: 5000 });
+    });
 
     return () => {
       clearInterval(interval);
+      socket.off('occupancy_update');
+      socket.off('session_update');
+      socket.off('vehicle_entry');
+      socket.off('vehicle_exit');
+      socket.off('payment_received');
+      socket.off('incident_created');
       disconnectSocket();
     };
   }, [fetchData]);

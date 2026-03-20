@@ -170,9 +170,25 @@ export default function ControlAccesoPage() {
     socket.on('occupancy_update', (data) => {
       if (data.plans) setPlans(data.plans);
     });
+    socket.on('vehicle_entry', (data) => {
+      toast.info(`Entrada: ${data.plate}`, { autoClose: 3000 });
+      fetchOccupancy();
+    });
+    socket.on('vehicle_exit', (data) => {
+      toast.info(`Salida: ${data.plate}`, { autoClose: 3000 });
+      fetchOccupancy();
+    });
+    socket.on('stale_sessions_closed', (data) => {
+      toast.info(`${data.count || ''} sesiones inactivas cerradas`, { autoClose: 4000 });
+      fetchOccupancy();
+    });
 
     return () => {
       clearInterval(interval);
+      socket.off('occupancy_update');
+      socket.off('vehicle_entry');
+      socket.off('vehicle_exit');
+      socket.off('stale_sessions_closed');
       disconnectSocket();
     };
   }, [fetchOccupancy]);
