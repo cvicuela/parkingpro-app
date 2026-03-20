@@ -4,7 +4,8 @@ import { connectSocket, disconnectSocket } from '../services/socket';
 import { toast } from 'react-toastify';
 import {
   LogIn, LogOut, Search, Car, Clock, DollarSign, CheckCircle,
-  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X, Filter, Wifi
+  XCircle, AlertTriangle, RefreshCw, QrCode, Printer, X, Filter, Wifi,
+  CreditCard, Banknote, ArrowRightLeft
 } from 'lucide-react';
 import SessionStatusBadge, { SESSION_STATUS_CONFIG } from '../components/SessionStatusBadge';
 
@@ -140,6 +141,9 @@ export default function ControlAccesoPage() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [qrModal, setQrModal] = useState(null);
   const [statusFilter, setStatusFilter] = useState('active');
+  const [paymentModal, setPaymentModal] = useState(null); // { amount, breakdown, is_free, session, validationResult, plate }
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [adminExitConfirm, setAdminExitConfirm] = useState(false);
 
   const fetchOccupancy = useCallback(async () => {
     try {
@@ -213,16 +217,78 @@ export default function ControlAccesoPage() {
   const handleRegisterExit = async () => {
     setLoading(true);
     try {
-      await accessAPI.exit({
+      const { data } = await accessAPI.exit({
         vehiclePlate: plate.toUpperCase().trim(),
         validationResult
       });
+      const result = data.data || data;
+
+      // Payment-gated exit: backend requires payment before opening barrier
+      if (result.barrier_allowed === false && result.payment_status === 'pending') {
+        setPaymentMethod('cash');
+        setPaymentModal({
+          amount: result.payment?.amount,
+          breakdown: result.payment?.breakdown,
+          is_free: result.payment?.is_free,
+          session: result.session || validationResult?.session,
+          validationResult,
+          plate: plate.toUpperCase().trim()
+        });
+        return;
+      }
+
+      // barrier_allowed === true or not present: exit completed normally
       toast.success('Salida registrada');
       setPlate('');
       setValidationResult(null);
       fetchOccupancy();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al registrar salida');
+    } finally { setLoading(false); }
+  };
+
+  const handlePaymentModalConfirm = async () => {
+    if (!paymentModal) return;
+    setLoading(true);
+    try {
+      if (paymentModal.session?.id) {
+        await accessAPI.sessionPayment(paymentModal.session.id, {
+          amount: paymentModal.amount,
+          provider: paymentMethod
+        });
+      }
+      await accessAPI.exit({
+        vehiclePlate: paymentModal.plate,
+        validationResult: paymentModal.validationResult,
+        payment: { paid: true, method: paymentMethod }
+      });
+      toast.success(`Pago registrado: RD$ ${paymentModal.amount?.toFixed(2)} — Salida autorizada`);
+      setPaymentModal(null);
+      setPlate('');
+      setValidationResult(null);
+      fetchOccupancy();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al procesar pago');
+    } finally { setLoading(false); }
+  };
+
+  const handleAdminForceExit = async () => {
+    if (!paymentModal) return;
+    setAdminExitConfirm(false);
+    setLoading(true);
+    try {
+      await accessAPI.exit({
+        vehiclePlate: paymentModal.plate,
+        validationResult: paymentModal.validationResult,
+        payment: { paid: false, forced: true }
+      });
+      toast.success('Salida manual registrada sin pago');
+      setPaymentModal(null);
+      setPlate('');
+      setValidationResult(null);
+      fetchOccupancy();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al registrar salida manual');
     } finally { setLoading(false); }
   };
 
@@ -399,6 +465,129 @@ export default function ControlAccesoPage() {
           <OccupancyPanel plans={plans} />
         </div>
       </div>
+
+      {/* Payment Required Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-amber-100 rounded-full p-2">
+                  <DollarSign className="text-amber-600" size={22} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">Pago Requerido</h3>
+              </div>
+              <button onClick={() => setPaymentModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Amber alert banner */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 flex items-center gap-2">
+              <AlertTriangle className="text-amber-500 shrink-0" size={18} />
+              <p className="text-sm text-amber-800 font-medium">
+                La barrera no se abrira hasta completar el pago
+              </p>
+            </div>
+
+            {/* Plate + amount */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-1">
+              <p className="text-sm text-gray-500">Vehiculo</p>
+              <p className="text-xl font-mono font-bold text-gray-800">{paymentModal.plate}</p>
+              {paymentModal.breakdown?.map((b, i) => (
+                <p key={i} className="text-xs text-gray-400">Hora {b.hour}: RD$ {b.rate}</p>
+              ))}
+              <p className="text-lg font-bold text-amber-700 mt-1">
+                Monto a pagar: RD$ {paymentModal.amount?.toFixed(2)}
+              </p>
+              {paymentModal.is_free && (
+                <p className="text-sm text-green-600 font-medium">Gratis (dentro de tolerancia)</p>
+              )}
+            </div>
+
+            {/* Payment method selection */}
+            <p className="text-sm font-medium text-gray-600 mb-2">Metodo de pago</p>
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {[
+                { value: 'cash', label: 'Efectivo', Icon: Banknote },
+                { value: 'card', label: 'Tarjeta', Icon: CreditCard },
+                { value: 'transfer', label: 'Transfer.', Icon: ArrowRightLeft }
+              ].map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setPaymentMethod(value)}
+                  className={`flex flex-col items-center gap-1 py-3 rounded-lg border-2 transition-colors text-sm font-medium ${
+                    paymentMethod === value
+                      ? 'border-amber-500 bg-amber-50 text-amber-700'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Confirm payment button */}
+            <button
+              onClick={handlePaymentModalConfirm}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 mb-2"
+            >
+              <CheckCircle size={18} />
+              {loading ? 'Procesando...' : `Confirmar Pago y Registrar Salida`}
+            </button>
+
+            {/* Admin-only: force exit without payment */}
+            {(() => {
+              try { const s = JSON.parse(localStorage.getItem('pp_user') || '{}'); return s.role === 'admin' || s.role === 'superadmin'; } catch { return false; }
+            })() && (
+              <button
+                onClick={() => setAdminExitConfirm(true)}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <AlertTriangle size={14} /> Salida manual sin pago (Admin)
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Admin force-exit confirmation dialog */}
+      {adminExitConfirm && paymentModal && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xs w-full p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-red-100 rounded-full p-2">
+                <AlertTriangle className="text-red-600" size={22} />
+              </div>
+              <h3 className="text-base font-bold text-gray-800">Confirmar salida sin pago</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-5">
+              Esta accion registrara la salida del vehiculo <span className="font-mono font-bold">{paymentModal.plate}</span> sin cobrar{' '}
+              <span className="font-semibold text-red-600">RD$ {paymentModal.amount?.toFixed(2)}</span>.
+              Solo usar en casos excepcionales.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAdminExitConfirm(false)}
+                className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAdminForceExit}
+                disabled={loading}
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Code Modal */}
       {qrModal && (
