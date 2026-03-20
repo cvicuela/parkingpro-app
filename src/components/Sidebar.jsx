@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -26,7 +27,7 @@ const navItems = [
   { to: '/config', icon: Settings, label: 'Configuración', roles: ['admin','super_admin'] },
 ];
 
-export default function Sidebar({ open, onClose }) {
+export default memo(function Sidebar({ open, onClose }) {
   const { logout, user } = useAuth();
 
   const visibleItems = navItems.filter(item =>
@@ -94,4 +95,4 @@ export default function Sidebar({ open, onClose }) {
       </aside>
     </>
   );
-}
+});

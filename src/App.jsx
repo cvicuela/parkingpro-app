@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -6,23 +7,25 @@ import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ClientesPage from './pages/ClientesPage';
-import VehiculosPage from './pages/VehiculosPage';
-import PlanesPage from './pages/PlanesPage';
-import SuscripcionesPage from './pages/SuscripcionesPage';
-import ControlAccesoPage from './pages/ControlAccesoPage';
-import PagosPage from './pages/PagosPage';
-import ReportesPage from './pages/ReportesPage';
-import ConfigPage from './pages/ConfigPage';
-import CajaPage from './pages/CajaPage';
-import FacturasPage from './pages/FacturasPage';
-import AuditPage from './pages/AuditPage';
-import CajaHistorialPage from './pages/CajaHistorialPage';
-import GastosPage from './pages/GastosPage';
-import IncidentesPage from './pages/IncidentesPage';
-import NotificacionesPage from './pages/NotificacionesPage';
-import TerminalesPage from './pages/TerminalesPage';
+
+// Lazy load all page components for smaller initial bundle
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ClientesPage = lazy(() => import('./pages/ClientesPage'));
+const VehiculosPage = lazy(() => import('./pages/VehiculosPage'));
+const PlanesPage = lazy(() => import('./pages/PlanesPage'));
+const SuscripcionesPage = lazy(() => import('./pages/SuscripcionesPage'));
+const ControlAccesoPage = lazy(() => import('./pages/ControlAccesoPage'));
+const PagosPage = lazy(() => import('./pages/PagosPage'));
+const ReportesPage = lazy(() => import('./pages/ReportesPage'));
+const ConfigPage = lazy(() => import('./pages/ConfigPage'));
+const CajaPage = lazy(() => import('./pages/CajaPage'));
+const FacturasPage = lazy(() => import('./pages/FacturasPage'));
+const AuditPage = lazy(() => import('./pages/AuditPage'));
+const CajaHistorialPage = lazy(() => import('./pages/CajaHistorialPage'));
+const GastosPage = lazy(() => import('./pages/GastosPage'));
+const IncidentesPage = lazy(() => import('./pages/IncidentesPage'));
+const NotificacionesPage = lazy(() => import('./pages/NotificacionesPage'));
+const TerminalesPage = lazy(() => import('./pages/TerminalesPage'));
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();

@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Menu, Bell, Wifi, WifiOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { offlineQueue } from '../services/offlineQueue';
 
-export default function Header({ onMenuClick }) {
+export default memo(function Header({ onMenuClick }) {
   const { user } = useAuth();
   const [online, setOnline] = useState(navigator.onLine);
   const [pendingSync, setPendingSync] = useState(0);
@@ -62,4 +63,4 @@ export default function Header({ onMenuClick }) {
       </div>
     </header>
   );
-}
+});
