@@ -11,7 +11,7 @@ export default function OfflineIndicator() {
   const restoredTimerRef = useRef(null);
 
   const refreshPendingCount = () => {
-    setPendingCount(offlineQueue.pendingCount);
+    offlineQueue.pendingCount.then((count) => setPendingCount(count || 0)).catch(() => setPendingCount(0));
   };
 
   useEffect(() => {
