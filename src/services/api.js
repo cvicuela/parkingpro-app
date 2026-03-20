@@ -29,10 +29,11 @@ api.interceptors.response.use(
 
     // Queue failed mutations when offline
     if (!navigator.onLine && error.config && ['post', 'put', 'patch', 'delete'].includes(error.config.method)) {
-      offlineQueue.add({
-        method: error.config.method,
-        url: error.config.url,
-        data: error.config.data ? JSON.parse(error.config.data) : undefined
+      await offlineQueue.enqueue({
+        url:     error.config.url,
+        method:  error.config.method,
+        data:    error.config.data ? JSON.parse(error.config.data) : undefined,
+        headers: error.config.headers ? { Authorization: error.config.headers.Authorization } : {},
       });
       return Promise.resolve({ data: { success: true, offline: true, message: 'Guardado offline - se sincronizara al reconectar' } });
     }
