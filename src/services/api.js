@@ -128,6 +128,8 @@ export const reportsAPI = {
   sessions: (params) => api.get('/reports/sessions', { params }),
   invoicesReport: (params) => api.get('/reports/invoices', { params }),
   incidents: (params) => api.get('/reports/incidents', { params }),
+  revenueDaily: (params) => api.get('/reports/revenue-daily', { params }),
+  todaySummary: () => api.get('/reports/today-summary'),
   exportCsv: (type, params) => api.get(`/reports/export/${type}`, { params: { ...params, format: 'json' } }),
 };
 
