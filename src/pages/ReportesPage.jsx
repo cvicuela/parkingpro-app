@@ -39,6 +39,7 @@ const TABS = [
   { key: 'ocupacion', label: 'Ocupación', icon: Car },
   { key: 'sesiones', label: 'Sesiones Parqueo', icon: Clock },
   { key: 'facturacion', label: 'Facturación', icon: Receipt },
+  { key: 'analitica', label: 'Analítica Avanzada', icon: TrendingUp },
 ];
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'];
@@ -758,6 +759,178 @@ function TabFacturacion({ data, loading }) {
   );
 }
 
+// ─── TAB: ANALÍTICA AVANZADA ─────────────────────────────────
+function TabAnalitica({ period, customFrom, customTo, loading: parentLoading }) {
+  const [occupancyByHour, setOccupancyByHour] = useState([]);
+  const [revenueByMethod, setRevenueByMethod] = useState([]);
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (period === 'custom' && customFrom && customTo) {
+          params.fromDate = customFrom;
+          params.toDate = customTo;
+        }
+
+        const [occRes, revRes, custRes] = await Promise.allSettled([
+          reportsAPI.occupancyByHour(params),
+          reportsAPI.revenueByMethod(params),
+          reportsAPI.topCustomers({ limit: 10 }),
+        ]);
+
+        if (occRes.status === 'fulfilled') {
+          setOccupancyByHour((occRes.value.data?.data?.hours || []).map(h => ({
+            hour: parseInt(h.hour),
+            entries: parseInt(h.entries || 0),
+            exits: parseInt(h.exits || 0),
+          })));
+        }
+        if (revRes.status === 'fulfilled') {
+          setRevenueByMethod((revRes.value.data?.data?.methods || []).map(m => ({
+            provider: m.provider || 'Desconocido',
+            count: parseInt(m.count || 0),
+            total: parseFloat(m.total || 0),
+            tax_total: parseFloat(m.tax_total || 0),
+          })));
+        }
+        if (custRes.status === 'fulfilled') {
+          setTopCustomers((custRes.value.data?.data?.customers || []).map(c => ({
+            id: c.id,
+            name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company_name || '--',
+            company: c.company_name || '--',
+            paymentCount: parseInt(c.payment_count || 0),
+            totalRevenue: parseFloat(c.total_revenue || 0),
+          })));
+        }
+      } catch (e) {
+        console.error('Error fetching analytics:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [period, customFrom, customTo]);
+
+  if (loading || parentLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-64 bg-white rounded-xl animate-pulse" />
+        <div className="h-64 bg-white rounded-xl animate-pulse" />
+        <div className="h-64 bg-white rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+
+  const METHOD_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+  return (
+    <div className="space-y-4">
+      {/* Occupancy by Hour */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ocupación por Hora del Día</h3>
+        {occupancyByHour.length === 0 ? <EmptyState type="chart" /> : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={occupancyByHour}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="hour" tickFormatter={(h) => `${h}:00`} tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip labelFormatter={(h) => `${h}:00 hrs`} />
+              <Legend />
+              <Bar dataKey="entries" fill="#3b82f6" name="Entradas" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="exits" fill="#10b981" name="Salidas" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Revenue by Payment Method */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Ingresos por Método de Pago</h3>
+          {revenueByMethod.length === 0 ? <EmptyState type="money" /> : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={revenueByMethod} dataKey="total" nameKey="provider" cx="50%" cy="50%" outerRadius={100}
+                  label={({ provider, percent }) => `${provider} ${(percent * 100).toFixed(0)}%`}>
+                  {revenueByMethod.map((entry, index) => (
+                    <Cell key={index} fill={METHOD_COLORS[index % METHOD_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `RD$ ${parseFloat(value).toLocaleString('es-DO')}`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Detalle por Método</h3>
+          {revenueByMethod.length === 0 ? <EmptyState type="money" /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <caption className="sr-only">Ingresos desglosados por método de pago</caption>
+                <thead className="bg-gray-50 text-sm text-gray-500">
+                  <tr>
+                    <th className="py-3 px-4">Método</th>
+                    <th className="py-3 px-4">Transacciones</th>
+                    <th className="py-3 px-4">Total</th>
+                    <th className="py-3 px-4">ITBIS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenueByMethod.map((m, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-3 px-4 text-sm font-medium capitalize">{safeStr(m.provider)}</td>
+                      <td className="py-3 px-4 text-sm">{fmt(m.count)}</td>
+                      <td className="py-3 px-4 text-sm font-medium">{fmtRD(m.total)}</td>
+                      <td className="py-3 px-4 text-sm">{fmtRD(m.tax_total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Top Customers */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Top 10 Clientes por Ingresos</h3>
+        {topCustomers.length === 0 ? <EmptyState type="users" /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <caption className="sr-only">Top 10 clientes por ingresos generados</caption>
+              <thead className="bg-gray-50 text-sm text-gray-500">
+                <tr>
+                  <th className="py-3 px-4">#</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4">Empresa</th>
+                  <th className="py-3 px-4">Pagos</th>
+                  <th className="py-3 px-4">Ingresos Totales</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topCustomers.map((c, i) => (
+                  <tr key={c.id || i} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-sm text-gray-400">{i + 1}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-gray-800">{safeStr(c.name)}</td>
+                    <td className="py-3 px-4 text-sm">{safeStr(c.company)}</td>
+                    <td className="py-3 px-4 text-sm">{fmt(c.paymentCount)}</td>
+                    <td className="py-3 px-4 text-sm font-medium">{fmtRD(c.totalRevenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════
@@ -938,6 +1111,7 @@ export default function ReportesPage() {
         {activeTab === 'ocupacion' && <TabOcupacion data={currentData} plans={plans} loading={loading} />}
         {activeTab === 'sesiones' && <TabSesiones data={currentData} loading={loading} />}
         {activeTab === 'facturacion' && <TabFacturacion data={currentData} loading={loading} />}
+        {activeTab === 'analitica' && <TabAnalitica period={period} customFrom={customFrom} customTo={customTo} loading={loading} />}
       </div>
     </div>
   );

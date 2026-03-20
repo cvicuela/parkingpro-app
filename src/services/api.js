@@ -131,6 +131,9 @@ export const reportsAPI = {
   incidents: (params) => api.get('/reports/incidents', { params }),
   revenueDaily: (params) => api.get('/reports/revenue-daily', { params }),
   todaySummary: () => api.get('/reports/today-summary'),
+  occupancyByHour: (params) => api.get('/reports/occupancy-by-hour', { params }),
+  revenueByMethod: (params) => api.get('/reports/revenue-by-method', { params }),
+  topCustomers: (params) => api.get('/reports/top-customers', { params }),
   exportCsv: (type, params) => api.get(`/reports/export/${type}`, { params: { ...params, format: 'json' } }),
 };
 
@@ -217,4 +220,9 @@ export const notificationsAPI = {
   templates: () => api.get('/notifications/templates'),
   sendAlert: (data) => api.post('/notifications/send-alert', data),
   processQueue: () => api.post('/notifications/process-queue'),
+  pushVapidKey: () => api.get('/notifications/push/vapid-key'),
+  pushSubscribe: (subscription) => api.post('/notifications/push/subscribe', { subscription }),
+  pushUnsubscribe: (endpoint) => api.post('/notifications/push/unsubscribe', { endpoint }),
+  pushStatus: () => api.get('/notifications/push/status'),
+  pushSend: (data) => api.post('/notifications/push/send', data),
 };
