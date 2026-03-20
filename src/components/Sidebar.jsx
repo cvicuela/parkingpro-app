@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Car, CreditCard, Layers,
   ShieldCheck, Receipt, BarChart3, Settings, LogOut, X,
-  Wallet, FileText, ShieldAlert, History, TrendingDown, AlertTriangle, Bell
+  Wallet, FileText, ShieldAlert, History, TrendingDown, AlertTriangle, Bell, Monitor
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { to: '/gastos', icon: TrendingDown, label: 'Gastos', roles: ['admin','super_admin'] },
   { to: '/incidentes', icon: AlertTriangle, label: 'Incidentes', roles: ['operator','admin','super_admin'] },
   { to: '/notificaciones', icon: Bell, label: 'Notificaciones', roles: ['admin','super_admin'] },
+  { to: '/terminales', icon: Monitor, label: 'Terminales', roles: ['admin','super_admin'] },
   { to: '/reportes', icon: BarChart3, label: 'Reportes', roles: ['admin','super_admin'] },
   { to: '/auditoria', icon: ShieldAlert, label: 'Auditoría', roles: ['admin','super_admin'] },
   { to: '/config', icon: Settings, label: 'Configuración', roles: ['admin','super_admin'] },

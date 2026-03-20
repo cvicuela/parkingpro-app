@@ -197,6 +197,15 @@ export const incidentsAPI = {
   resolve: (id, data) => api.put(`/incidents/${id}/resolve`, data),
 };
 
+// Terminals
+export const terminalsAPI = {
+  list: () => api.get('/terminals'),
+  create: (data) => api.post('/terminals', data),
+  update: (id, data) => api.put(`/terminals/${id}`, data),
+  delete: (id) => api.delete(`/terminals/${id}`),
+  stats: () => api.get('/terminals/stats'),
+};
+
 // Notifications
 export const notificationsAPI = {
   list: (params) => api.get('/notifications', { params }),

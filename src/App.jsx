@@ -21,6 +21,7 @@ import CajaHistorialPage from './pages/CajaHistorialPage';
 import GastosPage from './pages/GastosPage';
 import IncidentesPage from './pages/IncidentesPage';
 import NotificacionesPage from './pages/NotificacionesPage';
+import TerminalesPage from './pages/TerminalesPage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -56,6 +57,7 @@ function AppRoutes() {
         <Route path="notificaciones" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Notificaciones"><NotificacionesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Reportes"><ReportesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="auditoria" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Auditoría"><AuditPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="terminales" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Terminales"><TerminalesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="config" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Configuración"><ConfigPage /></PageWrapper></ProtectedRoute>} />
       </Route>
     </Routes>
