@@ -8,6 +8,7 @@ import {
   CreditCard, Banknote, ArrowRightLeft
 } from 'lucide-react';
 import SessionStatusBadge, { SESSION_STATUS_CONFIG } from '../components/SessionStatusBadge';
+import CardPaymentForm from '../components/CardPaymentForm';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -144,6 +145,8 @@ export default function ControlAccesoPage() {
   const [paymentModal, setPaymentModal] = useState(null); // { amount, breakdown, is_free, session, validationResult, plate }
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [adminExitConfirm, setAdminExitConfirm] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [cardError, setCardError] = useState(null);
 
   const fetchOccupancy = useCallback(async () => {
     try {
@@ -247,15 +250,32 @@ export default function ControlAccesoPage() {
     } finally { setLoading(false); }
   };
 
-  const handlePaymentModalConfirm = async () => {
+  const handlePaymentModalConfirm = async (cardData = null) => {
     if (!paymentModal) return;
+    // If card method selected but no card data yet, show card form
+    if (paymentMethod === 'card' && !cardData && !showCardForm) {
+      setShowCardForm(true);
+      return;
+    }
     setLoading(true);
+    setCardError(null);
     try {
+      const paymentPayload = {
+        amount: paymentModal.amount,
+        provider: paymentMethod === 'card' ? 'cardnet' : paymentMethod
+      };
+      // Attach card details if card payment
+      if (paymentMethod === 'card' && cardData) {
+        paymentPayload.metadata = {
+          cardNumber: cardData.cardNumber,
+          cardExpMonth: cardData.cardExpMonth,
+          cardExpYear: cardData.cardExpYear,
+          cardCvv: cardData.cardCvv,
+          cardHolderName: cardData.cardHolderName
+        };
+      }
       if (paymentModal.session?.id) {
-        await accessAPI.sessionPayment(paymentModal.session.id, {
-          amount: paymentModal.amount,
-          provider: paymentMethod
-        });
+        await accessAPI.sessionPayment(paymentModal.session.id, paymentPayload);
       }
       await accessAPI.exit({
         vehiclePlate: paymentModal.plate,
@@ -264,11 +284,17 @@ export default function ControlAccesoPage() {
       });
       toast.success(`Pago registrado: RD$ ${paymentModal.amount?.toFixed(2)} — Salida autorizada`);
       setPaymentModal(null);
+      setShowCardForm(false);
       setPlate('');
       setValidationResult(null);
       fetchOccupancy();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al procesar pago');
+      const errorMsg = err.response?.data?.error || 'Error al procesar pago';
+      if (paymentMethod === 'card') {
+        setCardError(errorMsg);
+      } else {
+        toast.error(errorMsg);
+      }
     } finally { setLoading(false); }
   };
 
@@ -516,7 +542,7 @@ export default function ControlAccesoPage() {
               ].map(({ value, label, Icon }) => (
                 <button
                   key={value}
-                  onClick={() => setPaymentMethod(value)}
+                  onClick={() => { setPaymentMethod(value); setShowCardForm(false); setCardError(null); }}
                   className={`flex flex-col items-center gap-1 py-3 rounded-lg border-2 transition-colors text-sm font-medium ${
                     paymentMethod === value
                       ? 'border-amber-500 bg-amber-50 text-amber-700'
@@ -529,15 +555,25 @@ export default function ControlAccesoPage() {
               ))}
             </div>
 
-            {/* Confirm payment button */}
-            <button
-              onClick={handlePaymentModalConfirm}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 mb-2"
-            >
-              <CheckCircle size={18} />
-              {loading ? 'Procesando...' : `Confirmar Pago y Registrar Salida`}
-            </button>
+            {/* Card payment form or confirm button */}
+            {showCardForm && paymentMethod === 'card' ? (
+              <CardPaymentForm
+                amount={paymentModal.amount}
+                onSubmit={(cardData) => handlePaymentModalConfirm(cardData)}
+                onCancel={() => { setShowCardForm(false); setCardError(null); }}
+                isLoading={loading}
+                error={cardError}
+              />
+            ) : (
+              <button
+                onClick={() => handlePaymentModalConfirm()}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 mb-2"
+              >
+                <CheckCircle size={18} />
+                {loading ? 'Procesando...' : `Confirmar Pago y Registrar Salida`}
+              </button>
+            )}
 
             {/* Admin-only: force exit without payment */}
             {(() => {

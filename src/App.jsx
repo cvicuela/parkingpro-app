@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import OfflineIndicator from './components/OfflineIndicator';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientesPage from './pages/ClientesPage';
@@ -70,6 +71,7 @@ export default function App() {
       <AuthProvider>
         <AppRoutes />
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} theme="colored" />
+        <OfflineIndicator />
       </AuthProvider>
     </BrowserRouter>
   );
