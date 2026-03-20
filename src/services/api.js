@@ -131,6 +131,9 @@ export const reportsAPI = {
   incidents: (params) => api.get('/reports/incidents', { params }),
   revenueDaily: (params) => api.get('/reports/revenue-daily', { params }),
   todaySummary: () => api.get('/reports/today-summary'),
+  occupancyByHour: (params) => api.get('/reports/occupancy-by-hour', { params }),
+  revenueByMethod: (params) => api.get('/reports/revenue-by-method', { params }),
+  topCustomers: (params) => api.get('/reports/top-customers', { params }),
   exportCsv: (type, params) => api.get(`/reports/export/${type}`, { params: { ...params, format: 'json' } }),
 };
 
