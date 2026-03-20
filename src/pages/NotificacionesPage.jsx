@@ -7,6 +7,8 @@ import {
   Zap, Eye
 } from 'lucide-react';
 import { notificationsAPI } from '../services/api';
+import PushNotificationToggle from '../components/PushNotificationToggle';
+import { sendPushNotification } from '../services/pushService';
 
 const CHANNEL_CONFIG = {
   whatsapp: { icon: MessageCircle, label: 'WhatsApp', color: 'green' },
@@ -128,6 +130,9 @@ export default function NotificacionesPage() {
           </button>
         </div>
       </div>
+
+      {/* Push Notification Toggle */}
+      <PushNotificationToggle />
 
       {/* Stats */}
       {stats && (
@@ -308,6 +313,37 @@ function SendNotificationModal({ onClose, onSent }) {
   const [previewHtml, setPreviewHtml] = useState('');
 
   const handleSend = async () => {
+    if (form.channel === 'push' && mode === 'manual') {
+      if (!form.subject || !form.body) {
+        toast.error('Titulo y mensaje son requeridos');
+        return;
+      }
+      try {
+        setSending(true);
+        const result = await sendPushNotification({
+          title: form.subject,
+          body: form.body,
+          target: form.pushTarget || 'all',
+          userId: form.pushUserId || undefined,
+          role: form.pushRole || undefined,
+          url: form.pushUrl || undefined,
+          tag: form.pushTag || undefined,
+        });
+        if (result.success) {
+          toast.success('Push notification enviada');
+          onSent();
+          onClose();
+        } else {
+          toast.error('Error: ' + (result.error || 'Error desconocido'));
+        }
+      } catch (err) {
+        toast.error('Error: ' + (err.response?.data?.error || err.message));
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     if (mode === 'template') {
       if (!selectedTemplate) {
         toast.error('Selecciona un template');
@@ -389,17 +425,19 @@ function SendNotificationModal({ onClose, onSent }) {
 
         {/* Body */}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Recipient (always shown) */}
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              {mode === 'template' ? 'Email destinatario' : (form.channel === 'email' ? 'Email' : 'Telefono')}
-            </label>
-            <input type={mode === 'template' || form.channel === 'email' ? 'email' : 'tel'}
-              value={form.recipient}
-              onChange={e => setForm({ ...form, recipient: e.target.value })}
-              placeholder={mode === 'template' || form.channel === 'email' ? 'cliente@email.com' : '+18091234567'}
-              className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
+          {/* Recipient (shown for non-push channels) */}
+          {(mode === 'template' || form.channel !== 'push') && (
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                {mode === 'template' ? 'Email destinatario' : (form.channel === 'email' ? 'Email' : 'Telefono')}
+              </label>
+              <input type={mode === 'template' || form.channel === 'email' ? 'email' : 'tel'}
+                value={form.recipient}
+                onChange={e => setForm({ ...form, recipient: e.target.value })}
+                placeholder={mode === 'template' || form.channel === 'email' ? 'cliente@email.com' : '+18091234567'}
+                className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+            </div>
+          )}
 
           {mode === 'manual' ? (
             <>
@@ -410,8 +448,59 @@ function SendNotificationModal({ onClose, onSent }) {
                   <option value="email">Email</option>
                   <option value="whatsapp">WhatsApp</option>
                   <option value="sms">SMS</option>
+                  <option value="push">Push</option>
                 </select>
               </div>
+              {form.channel === 'push' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Destino</label>
+                    <select value={form.pushTarget || 'all'}
+                      onChange={e => setForm({ ...form, pushTarget: e.target.value })}
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+                      <option value="all">Todos los usuarios</option>
+                      <option value="role">Por rol</option>
+                      <option value="user">Usuario especifico</option>
+                    </select>
+                  </div>
+                  {form.pushTarget === 'role' && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Rol</label>
+                      <select value={form.pushRole || ''}
+                        onChange={e => setForm({ ...form, pushRole: e.target.value })}
+                        className="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+                        <option value="">Seleccionar rol</option>
+                        <option value="admin">Administrador</option>
+                        <option value="operator">Operador</option>
+                        <option value="supervisor">Supervisor</option>
+                      </select>
+                    </div>
+                  )}
+                  {form.pushTarget === 'user' && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">ID de Usuario</label>
+                      <input type="text" value={form.pushUserId || ''}
+                        onChange={e => setForm({ ...form, pushUserId: e.target.value })}
+                        placeholder="ID del usuario"
+                        className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Titulo</label>
+                    <input type="text" value={form.subject}
+                      onChange={e => setForm({ ...form, subject: e.target.value })}
+                      placeholder="Titulo de la notificacion"
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">URL (opcional)</label>
+                    <input type="text" value={form.pushUrl || ''}
+                      onChange={e => setForm({ ...form, pushUrl: e.target.value })}
+                      placeholder="/dashboard"
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                </>
+              )}
               {form.channel === 'email' && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">Asunto</label>

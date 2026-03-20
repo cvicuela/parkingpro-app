@@ -217,4 +217,9 @@ export const notificationsAPI = {
   templates: () => api.get('/notifications/templates'),
   sendAlert: (data) => api.post('/notifications/send-alert', data),
   processQueue: () => api.post('/notifications/process-queue'),
+  pushVapidKey: () => api.get('/notifications/push/vapid-key'),
+  pushSubscribe: (subscription) => api.post('/notifications/push/subscribe', { subscription }),
+  pushUnsubscribe: (endpoint) => api.post('/notifications/push/unsubscribe', { endpoint }),
+  pushStatus: () => api.get('/notifications/push/status'),
+  pushSend: (data) => api.post('/notifications/push/send', data),
 };

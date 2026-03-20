@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { reportsAPI, plansAPI, accessAPI } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { DollarSign, Users, Car, AlertTriangle, TrendingUp, LogIn, LogOut } from 'lucide-react';
+import PushNotificationToggle from '../components/PushNotificationToggle';
 import SessionStatusBadge from '../components/SessionStatusBadge';
 import { SkeletonKPI, SkeletonTable } from '../components/SkeletonLoader';
 import { formatTime } from '../services/formatDate';
@@ -405,7 +406,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header row with Quick Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+          <PushNotificationToggle compact />
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/acceso')}
