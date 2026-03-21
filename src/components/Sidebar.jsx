@@ -71,13 +71,15 @@ function NavGroup({ group, userRole, onClose, defaultOpen }) {
     <div className="mb-1">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={`nav-group-${group.id}`}
         className="flex items-center justify-between w-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 hover:text-white/60 transition-colors"
       >
         <span>{group.label}</span>
-        <ChevronDown size={14} className={`transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+        <ChevronDown size={14} className={`transition-transform duration-200 ${open ? '' : '-rotate-90'}`} aria-hidden="true" />
       </button>
       {open && (
-        <div className="space-y-0.5">
+        <div id={`nav-group-${group.id}`} className="space-y-0.5" role="group" aria-label={group.label}>
           {visibleItems.map(({ to, icon: Icon, label, bold }) => (
             <NavLink
               key={to}
