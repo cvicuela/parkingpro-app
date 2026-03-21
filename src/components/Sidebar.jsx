@@ -1,38 +1,111 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Car, CreditCard, Layers,
   ShieldCheck, Receipt, BarChart3, Settings, LogOut, X,
-  Wallet, FileText, ShieldAlert, History, TrendingDown, AlertTriangle, Bell, Monitor
+  Wallet, FileText, ShieldAlert, History, TrendingDown, AlertTriangle, Bell, Monitor,
+  ChevronDown
 } from 'lucide-react';
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['operator','admin','super_admin'] },
-  { to: '/clientes', icon: Users, label: 'Clientes', roles: ['operator','admin','super_admin'] },
-  { to: '/vehiculos', icon: Car, label: 'Vehículos', roles: ['operator','admin','super_admin'] },
-  { to: '/planes', icon: Layers, label: 'Planes', roles: ['admin','super_admin'] },
-  { to: '/suscripciones', icon: CreditCard, label: 'Suscripciones', roles: ['operator','admin','super_admin'] },
-  { to: '/acceso', icon: ShieldCheck, label: 'Control de Acceso', roles: ['operator','admin','super_admin'] },
-  { to: '/caja', icon: Wallet, label: 'Caja', roles: ['operator','admin','super_admin'] },
-  { to: '/caja/historial', icon: History, label: 'Historial Cajas', roles: ['admin','super_admin'] },
-  { to: '/pagos', icon: Receipt, label: 'Pagos', roles: ['operator','admin','super_admin'] },
-  { to: '/facturas', icon: FileText, label: 'Facturas', roles: ['operator','admin','super_admin'] },
-  { to: '/gastos', icon: TrendingDown, label: 'Gastos', roles: ['admin','super_admin'] },
-  { to: '/incidentes', icon: AlertTriangle, label: 'Incidentes', roles: ['operator','admin','super_admin'] },
-  { to: '/notificaciones', icon: Bell, label: 'Notificaciones', roles: ['admin','super_admin'] },
-  { to: '/terminales', icon: Monitor, label: 'Terminales', roles: ['admin','super_admin'] },
-  { to: '/reportes', icon: BarChart3, label: 'Reportes', roles: ['admin','super_admin'] },
-  { to: '/auditoria', icon: ShieldAlert, label: 'Auditoría', roles: ['admin','super_admin'] },
-  { to: '/config', icon: Settings, label: 'Configuración', roles: ['admin','super_admin'] },
+const navGroups = [
+  {
+    id: 'operations',
+    label: 'Operaciones',
+    items: [
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['operator','admin','super_admin'], bold: true },
+      { to: '/acceso', icon: ShieldCheck, label: 'Control de Acceso', roles: ['operator','admin','super_admin'] },
+      { to: '/incidentes', icon: AlertTriangle, label: 'Incidentes', roles: ['operator','admin','super_admin'] },
+    ],
+  },
+  {
+    id: 'clients',
+    label: 'Clientes y Vehículos',
+    items: [
+      { to: '/clientes', icon: Users, label: 'Clientes', roles: ['operator','admin','super_admin'] },
+      { to: '/vehiculos', icon: Car, label: 'Vehículos', roles: ['operator','admin','super_admin'] },
+      { to: '/planes', icon: Layers, label: 'Planes', roles: ['admin','super_admin'] },
+      { to: '/suscripciones', icon: CreditCard, label: 'Suscripciones', roles: ['operator','admin','super_admin'] },
+    ],
+  },
+  {
+    id: 'billing',
+    label: 'Caja y Facturación',
+    items: [
+      { to: '/caja', icon: Wallet, label: 'Caja', roles: ['operator','admin','super_admin'] },
+      { to: '/caja/historial', icon: History, label: 'Historial Cajas', roles: ['admin','super_admin'] },
+      { to: '/pagos', icon: Receipt, label: 'Pagos', roles: ['operator','admin','super_admin'] },
+      { to: '/facturas', icon: FileText, label: 'Facturas', roles: ['operator','admin','super_admin'] },
+      { to: '/gastos', icon: TrendingDown, label: 'Gastos', roles: ['admin','super_admin'] },
+    ],
+  },
+  {
+    id: 'reports',
+    label: 'Reportes',
+    items: [
+      { to: '/reportes', icon: BarChart3, label: 'Reportes', roles: ['admin','super_admin'] },
+    ],
+  },
+  {
+    id: 'admin',
+    label: 'Administración',
+    items: [
+      { to: '/notificaciones', icon: Bell, label: 'Notificaciones', roles: ['admin','super_admin'] },
+      { to: '/terminales', icon: Monitor, label: 'Terminales', roles: ['admin','super_admin'] },
+      { to: '/auditoria', icon: ShieldAlert, label: 'Auditoría', roles: ['admin','super_admin'] },
+      { to: '/config', icon: Settings, label: 'Configuración', roles: ['admin','super_admin'] },
+    ],
+  },
 ];
+
+function NavGroup({ group, userRole, onClose, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const visibleItems = group.items.filter(
+    item => !item.roles || item.roles.includes(userRole)
+  );
+
+  if (visibleItems.length === 0) return null;
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 hover:text-white/60 transition-colors"
+      >
+        <span>{group.label}</span>
+        <ChevronDown size={14} className={`transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && (
+        <div className="space-y-0.5">
+          {visibleItems.map(({ to, icon: Icon, label, bold }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors text-sm ${
+                  isActive
+                    ? 'bg-white/20 text-white font-bold'
+                    : bold
+                      ? 'text-white font-bold hover:bg-white/10'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`
+              }
+            >
+              <Icon size={18} />
+              <span className={bold ? 'text-[13px] tracking-wide uppercase' : ''}>{label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default memo(function Sidebar({ open, onClose }) {
   const { logout, user } = useAuth();
-
-  const visibleItems = navItems.filter(item =>
-    !item.roles || !user || item.roles.includes(user.role)
-  );
 
   return (
     <>
@@ -56,24 +129,15 @@ export default memo(function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        <nav className="flex-1 py-4 overflow-y-auto" role="navigation" aria-label="Navegación principal">
-          {visibleItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-white/20 text-white font-semibold'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </NavLink>
+        <nav className="flex-1 py-3 overflow-y-auto" role="navigation" aria-label="Navegación principal">
+          {navGroups.map((group, idx) => (
+            <NavGroup
+              key={group.id}
+              group={group}
+              userRole={user?.role}
+              onClose={onClose}
+              defaultOpen={idx < 3}
+            />
           ))}
         </nav>
 
