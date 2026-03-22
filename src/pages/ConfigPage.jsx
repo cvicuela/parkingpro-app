@@ -72,8 +72,20 @@ export default function ConfigPage() {
       const cats = {};
       items.forEach(s => { cats[s.category || 'general'] = true; });
       setExpandedCategories(cats);
-    } catch {
-      toast.error('Error cargando configuraciones');
+    } catch (err) {
+      console.error('[ConfigPage] Error loading settings:', err);
+      // Try to load from localStorage cache as last resort
+      try {
+        const cached = JSON.parse(localStorage.getItem('pp_settings') || '{}');
+        if (Object.keys(cached).length > 0) {
+          setEditValues(cached);
+          toast.warning('Cargando configuraciones desde caché local');
+        } else {
+          toast.error('Error cargando configuraciones: ' + (err.response?.data?.error || err.message || 'Servidor no disponible'));
+        }
+      } catch {
+        toast.error('Error cargando configuraciones: ' + (err.response?.data?.error || err.message || 'Servidor no disponible'));
+      }
     } finally {
       setLoading(false);
     }
