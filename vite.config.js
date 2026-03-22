@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
+  // In production build (for desktop .exe), use /admin/ base path
+  base: process.env.VITE_BASE_PATH || (command === 'serve' ? '/' : '/admin/'),
   server: {
     port: 5173,
     proxy: {
@@ -18,4 +20,4 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false
   }
-});
+}));
