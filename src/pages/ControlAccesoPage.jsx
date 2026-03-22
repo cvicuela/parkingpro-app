@@ -593,7 +593,7 @@ export default function ControlAccesoPage() {
 
             {/* Admin-only: force exit without payment */}
             {(() => {
-              try { const s = JSON.parse(localStorage.getItem('pp_user') || '{}'); return s.role === 'admin' || s.role === 'superadmin'; } catch { return false; }
+              try { const s = JSON.parse(localStorage.getItem('pp_user') || '{}'); return s.role === 'admin' || s.role === 'super_admin'; } catch { return false; }
             })() && (
               <button
                 onClick={() => setAdminExitConfirm(true)}
