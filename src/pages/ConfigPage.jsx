@@ -134,12 +134,38 @@ export default function ConfigPage() {
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
+  // Preferred field order within notificaciones category
+  const notificacionesOrder = [
+    'email_enabled', 'resend_api_key', 'resend_from_email',
+    'notification_email_1_enabled', 'notification_email_1',
+    'notification_email_2_enabled', 'notification_email_2',
+    'notification_email_3_enabled', 'notification_email_3',
+    'notification_email_4_enabled', 'notification_email_4',
+    'notification_email_5_enabled', 'notification_email_5',
+    'telegram_enabled',
+    'telegram_phone_1', 'telegram_phone_2', 'telegram_phone_3',
+    'sms_enabled', 'whatsapp_enabled',
+    'alert_email', 'alert_email_2',
+  ];
+
   const grouped = {};
   settings.forEach(s => {
     const cat = s.category || 'general';
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(s);
   });
+
+  // Sort notificaciones by explicit order
+  if (grouped.notificaciones) {
+    grouped.notificaciones.sort((a, b) => {
+      const ia = notificacionesOrder.indexOf(a.key);
+      const ib = notificacionesOrder.indexOf(b.key);
+      if (ia === -1 && ib === -1) return a.key.localeCompare(b.key);
+      if (ia === -1) return 1;
+      if (ib === -1) return 1;
+      return ia - ib;
+    });
+  }
 
   // Add uncategorized settings to 'parqueo' or 'general'
   const categoryOrder = ['general', 'caja', 'facturacion', 'antifraude', 'notificaciones', 'parqueo'];
