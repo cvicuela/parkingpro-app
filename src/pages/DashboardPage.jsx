@@ -8,6 +8,7 @@ import PushNotificationToggle from '../components/PushNotificationToggle';
 import SessionStatusBadge from '../components/SessionStatusBadge';
 import { SkeletonKPI, SkeletonTable } from '../components/SkeletonLoader';
 import { formatTime } from '../services/formatDate';
+import { fmtMoney } from '../utils/formatters';
 
 function StatCard({ icon: Icon, label, value, color, subtext }) {
   const colors = {
@@ -80,7 +81,7 @@ function ActiveSessionRow({ session }) {
       </td>
       <td className="py-3 px-4 text-sm">{hours}h {mins}m</td>
       <td className="py-3 px-4 text-sm font-medium text-green-600">
-        RD$ {(session.current_amount || 0).toFixed(2)}
+        {fmtMoney(session.current_amount || 0)}
       </td>
     </tr>
   );
@@ -115,7 +116,7 @@ function TodayPerformanceBar({ todayStats }) {
           <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
           <path d="M7 4v3l2 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <strong>RD$ {revenue.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+        <strong>{fmtMoney(revenue)}</strong>
       </span>
     </div>
   );
@@ -177,7 +178,7 @@ function RevenueTrendChart({ weekData }) {
                   fill={barColor}
                 />
                 <title>
-                  {day.date}: RD$ {day.revenue.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {day.date}: {fmtMoney(day.revenue)}
                 </title>
                 <text
                   x={x + barW / 2}
@@ -395,7 +396,7 @@ export default function DashboardPage() {
       fetchData();
     });
     socket.on('payment_received', (data) => {
-      toast.success(`Pago recibido: RD$${parseFloat(data.amount).toLocaleString()}`, { autoClose: 3000 });
+      toast.success(`Pago recibido: ${fmtMoney(data.amount)}`, { autoClose: 3000 });
     });
     socket.on('incident_created', (data) => {
       toast.warn(`Nuevo incidente: ${data.description}`, { autoClose: 5000 });
@@ -457,7 +458,7 @@ export default function DashboardPage() {
         <StatCard
           icon={DollarSign}
           label="Ingresos del Mes"
-          value={`RD$ ${(dashboard?.revenue || 0).toLocaleString()}`}
+          value={fmtMoney(dashboard?.revenue || 0)}
           color="green"
         />
         <StatCard

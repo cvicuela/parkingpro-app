@@ -16,9 +16,9 @@ import {
 } from 'recharts';
 
 // ─── HELPERS ────────────────────────────────────────────────
-const fmt = (n) => (n ?? 0).toLocaleString('es-DO');
-const fmtRD = (n) => `RD$ ${fmt(n)}`;
-const fmtPct = (n) => `${(n ?? 0).toFixed(1)}%`;
+import { fmtMoney, fmtNumber, fmtPct } from '../utils/formatters';
+const fmt = (n) => fmtNumber(n ?? 0);
+const fmtRD = (n) => fmtMoney(n ?? 0);
 const safe = (v, fallback = 0) => v ?? fallback;
 const safeStr = (v, fallback = '--') => (v !== undefined && v !== null && v !== '') ? v : fallback;
 
@@ -860,7 +860,7 @@ function TabAnalitica({ period, customFrom, customTo, loading: parentLoading }) 
                     <Cell key={index} fill={METHOD_COLORS[index % METHOD_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `RD$ ${parseFloat(value).toLocaleString('es-DO')}`} />
+                <Tooltip formatter={(value) => fmtRD(value)} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

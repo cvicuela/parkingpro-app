@@ -2,16 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { TrendingDown, Plus, Search, Edit3, Trash2, X, Save, RefreshCw } from 'lucide-react';
 import { expensesAPI } from '../services/api';
+import { fmtMoney } from '../utils/formatters';
 
 const CATEGORIES = {
   servicios: 'Servicios', mantenimiento: 'Mantenimiento', nomina: 'Nómina',
   alquiler: 'Alquiler', seguros: 'Seguros', suministros: 'Suministros',
   impuestos: 'Impuestos', financieros: 'Financieros', equipos: 'Equipos', otros: 'Otros',
 };
-
-function formatCurrency(v) {
-  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(v || 0);
-}
 
 export default function GastosPage() {
   const [expenses, setExpenses] = useState([]);
@@ -91,8 +88,8 @@ export default function GastosPage() {
                 <td className="px-4 py-3 font-medium">{e.supplier_name}</td>
                 <td className="px-4 py-3 text-xs">{CATEGORIES[e.category] || e.category}</td>
                 <td className="px-4 py-3 font-mono text-xs">{e.ncf || '-'}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(e.itbis_amount)}</td>
-                <td className="px-4 py-3 text-right font-semibold">{formatCurrency(e.total)}</td>
+                <td className="px-4 py-3 text-right">{fmtMoney(e.itbis_amount)}</td>
+                <td className="px-4 py-3 text-right font-semibold">{fmtMoney(e.total)}</td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center gap-1 justify-center">
                     <button onClick={() => { setEditItem(e); setShowModal(true); }}

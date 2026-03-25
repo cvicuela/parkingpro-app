@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { Wallet, Lock, CheckCircle, AlertTriangle, Plus, Minus, List, CreditCard, Banknote, ArrowRightLeft } from 'lucide-react';
 import { cashAPI } from '../services/api';
+import { fmtMoney } from '../utils/formatters';
 
 const DENOMINATIONS = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
-const fmtMoney = (v) => `RD$ ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function CajaPage() {
   const [activeRegister, setActiveRegister] = useState(null);

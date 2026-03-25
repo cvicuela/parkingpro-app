@@ -3,6 +3,7 @@ import { plansAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { Plus, Edit2, Trash2, X, Clock, Sun, Moon, Timer } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { fmtMoney } from '../utils/formatters';
 
 const planIcons = { diurno: Sun, nocturno: Moon, '24h': Clock, hourly: Timer };
 const planColors = {
@@ -204,7 +205,7 @@ export default function PlanesPage() {
               <h3 className="font-semibold text-gray-800">{plan.name}</h3>
               <p className="text-sm text-gray-500 mb-3">{plan.description}</p>
               <div className="text-xl font-bold text-indigo-600 mb-3">
-                RD$ {parseFloat(plan.base_price).toLocaleString()}
+                {fmtMoney(plan.base_price)}
                 <span className="text-xs font-normal text-gray-400">
                   {plan.type === 'hourly' ? '/hora' : '/mes'}
                 </span>

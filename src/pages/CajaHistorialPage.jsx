@@ -3,8 +3,7 @@ import { toast } from 'react-toastify';
 import { History, CheckCircle, AlertTriangle, Eye, RefreshCw, Search } from 'lucide-react';
 import { cashAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-
-const fmtMoney = (v) => `RD$ ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+import { fmtMoney } from '../utils/formatters';
 
 export default function CajaHistorialPage() {
   const { user } = useAuth();
