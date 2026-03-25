@@ -6,6 +6,7 @@ import { SkeletonTable } from '../components/SkeletonLoader';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import { formatDateTime } from '../services/formatDate';
+import { fmtMoney } from '../utils/formatters';
 
 const PAGE_SIZE = 15;
 
@@ -58,7 +59,7 @@ export default function PagosPage() {
         <div className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-lg">
           <DollarSign size={18} className="text-green-600" />
           <span className="text-sm text-green-600">Total cobrado:</span>
-          <span className="font-bold text-green-700">RD$ {totalRevenue.toLocaleString()}</span>
+          <span className="font-bold text-green-700">{fmtMoney(totalRevenue)}</span>
         </div>
       </div>
 
@@ -100,9 +101,9 @@ export default function PagosPage() {
                           {formatDateTime(p.created_at)}
                         </td>
                         <td className="py-3 px-4 text-sm font-medium">{p.customer_name || 'Sin cliente'}</td>
-                        <td className="py-3 px-4 text-sm">RD$ {parseFloat(p.amount || 0).toFixed(2)}</td>
-                        <td className="py-3 px-4 text-sm text-gray-500">RD$ {parseFloat(p.tax_amount || 0).toFixed(2)}</td>
-                        <td className="py-3 px-4 font-medium">RD$ {parseFloat(p.total_amount || 0).toFixed(2)}</td>
+                        <td className="py-3 px-4 text-sm">{fmtMoney(p.amount)}</td>
+                        <td className="py-3 px-4 text-sm text-gray-500">{fmtMoney(p.tax_amount)}</td>
+                        <td className="py-3 px-4 font-medium">{fmtMoney(p.total_amount)}</td>
                         <td className="py-3 px-4 text-sm capitalize">{p.payment_method || '-'}</td>
                         <td className="py-3 px-4">
                           <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full w-fit ${config.class}`}>

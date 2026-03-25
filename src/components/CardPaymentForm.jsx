@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { CreditCard, RefreshCw, X, AlertCircle } from 'lucide-react';
+import { fmtMoney } from '../utils/formatters';
 
 /* ── Luhn algorithm ── */
 function luhnCheck(num) {
@@ -75,12 +76,6 @@ function formatExpiry(raw) {
   if (digits.length <= 2) return digits;
   return digits.slice(0, 2) + '/' + digits.slice(2, 4);
 }
-
-const fmtMoney = (n) => {
-  const parts = Number(n || 0).toFixed(2).split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `RD$ ${parts.join('.')}`;
-};
 
 export default function CardPaymentForm({ amount, onSubmit, onCancel, isLoading, error }) {
   const [cardNumber, setCardNumber] = useState('');

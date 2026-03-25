@@ -5,6 +5,7 @@ import { invoicesAPI } from '../services/api';
 import { SkeletonTable } from '../components/SkeletonLoader';
 import Pagination from '../components/Pagination';
 import { formatDate, formatDateTime } from '../services/formatDate';
+import { fmtMoney } from '../utils/formatters';
 
 const PAGE_SIZE = 15;
 
@@ -80,12 +81,12 @@ export default function FacturasPage() {
         <p>Fecha: ${new Date(invoice.created_at).toLocaleString('es-DO')}</p>
         <hr/>
         ${JSON.parse(invoice.items || '[]').map(item =>
-          `<div class="row"><span>${escapeHtml(item.description)}</span><span>RD$${parseFloat(item.subtotal).toFixed(2)}</span></div>`
+          `<div class="row"><span>${escapeHtml(item.description)}</span><span>${fmtMoney(item.subtotal)}</span></div>`
         ).join('')}
         <hr/>
-        <div class="row"><span>Subtotal:</span><span>RD$${parseFloat(invoice.subtotal).toFixed(2)}</span></div>
-        <div class="row"><span>ITBIS (18%):</span><span>RD$${parseFloat(invoice.tax_amount).toFixed(2)}</span></div>
-        <div class="row total"><span>TOTAL:</span><span>RD$${parseFloat(invoice.total).toFixed(2)}</span></div>
+        <div class="row"><span>Subtotal:</span><span>${fmtMoney(invoice.subtotal)}</span></div>
+        <div class="row"><span>ITBIS (18%):</span><span>${fmtMoney(invoice.tax_amount)}</span></div>
+        <div class="row total"><span>TOTAL:</span><span>${fmtMoney(invoice.total)}</span></div>
         <hr/>
         <p style="text-align:center;font-size:0.8em">Gracias por su preferencia</p>
         <script>window.print(); window.close();</script>
@@ -107,9 +108,9 @@ export default function FacturasPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Facturas emitidas', value: stats.total_invoices, fmt: v => v, color: 'blue' },
-            { label: 'Ingresos facturados', value: stats.total_revenue, fmt: v => `RD$${parseFloat(v).toFixed(2)}`, color: 'green' },
-            { label: 'ITBIS recaudado', value: stats.total_tax, fmt: v => `RD$${parseFloat(v).toFixed(2)}`, color: 'indigo' },
-            { label: 'Notas de crédito', value: stats.total_refunds, fmt: v => `RD$${parseFloat(v).toFixed(2)}`, color: 'orange' },
+            { label: 'Ingresos facturados', value: stats.total_revenue, fmt: v => fmtMoney(v), color: 'green' },
+            { label: 'ITBIS recaudado', value: stats.total_tax, fmt: v => fmtMoney(v), color: 'indigo' },
+            { label: 'Notas de crédito', value: stats.total_refunds, fmt: v => fmtMoney(v), color: 'orange' },
           ].map(({ label, value, fmt, color }) => (
             <div key={label} className={`bg-${color}-50 border border-${color}-200 rounded-lg p-4`}>
               <p className={`text-xs text-${color}-600 font-medium uppercase`}>{label}</p>
@@ -154,9 +155,9 @@ export default function FacturasPage() {
                     <td className="px-4 py-3 font-mono font-semibold text-indigo-600">#{inv.invoice_number}</td>
                     <td className="px-4 py-3 font-mono text-xs">{inv.ncf}</td>
                     <td className="px-4 py-3">{inv.customer_name}</td>
-                    <td className="px-4 py-3">RD${parseFloat(inv.subtotal).toFixed(2)}</td>
-                    <td className="px-4 py-3">RD${parseFloat(inv.tax_amount).toFixed(2)}</td>
-                    <td className="px-4 py-3 font-semibold">RD${parseFloat(inv.total).toFixed(2)}</td>
+                    <td className="px-4 py-3">{fmtMoney(inv.subtotal)}</td>
+                    <td className="px-4 py-3">{fmtMoney(inv.tax_amount)}</td>
+                    <td className="px-4 py-3 font-semibold">{fmtMoney(inv.total)}</td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(inv.created_at)}</td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); handlePrint(inv); }}
@@ -193,14 +194,14 @@ export default function FacturasPage() {
             {JSON.parse(selected.items || '[]').map((item, i) => (
               <div key={i} className="flex justify-between text-sm py-1">
                 <span>{item.description}</span>
-                <span>RD${parseFloat(item.subtotal).toFixed(2)}</span>
+                <span>{fmtMoney(item.subtotal)}</span>
               </div>
             ))}
             <hr className="my-3" />
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between"><span>Subtotal:</span><span>RD${parseFloat(selected.subtotal).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>ITBIS (18%):</span><span>RD${parseFloat(selected.tax_amount).toFixed(2)}</span></div>
-              <div className="flex justify-between font-bold text-lg"><span>TOTAL:</span><span>RD${parseFloat(selected.total).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Subtotal:</span><span>{fmtMoney(selected.subtotal)}</span></div>
+              <div className="flex justify-between"><span>ITBIS (18%):</span><span>{fmtMoney(selected.tax_amount)}</span></div>
+              <div className="flex justify-between font-bold text-lg"><span>TOTAL:</span><span>{fmtMoney(selected.total)}</span></div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setSelected(null)} className="flex-1 border border-gray-300 rounded-lg py-2 text-gray-700">Cerrar</button>

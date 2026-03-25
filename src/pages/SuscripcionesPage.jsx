@@ -5,6 +5,7 @@ import { Plus, Search, X, Pause, Play, Trash2, QrCode, CreditCard, Wifi } from '
 import { SkeletonTable } from '../components/SkeletonLoader';
 import ConfirmModal from '../components/ConfirmModal';
 import { formatDate } from '../services/formatDate';
+import { fmtMoney } from '../utils/formatters';
 
 const statusBadge = {
   active: 'bg-green-100 text-green-700',
@@ -84,7 +85,7 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
               <option value="">Seleccionar...</option>
               {plans.filter(p => p.type !== 'hourly').map((p) => (
-                <option key={p.id} value={p.id}>{p.name} - RD$ {parseFloat(p.base_price).toLocaleString()}/mes</option>
+                <option key={p.id} value={p.id}>{p.name} - {fmtMoney(p.base_price)}/mes</option>
               ))}
             </select>
           </div>
