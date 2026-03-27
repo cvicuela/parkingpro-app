@@ -203,6 +203,27 @@ export const incidentsAPI = {
   resolve: (id, data) => api.put(`/incidents/${id}/resolve`, data),
 };
 
+// Discounts
+export const discountsAPI = {
+  list: (params) => api.get('/discounts', { params }),
+  get: (id) => api.get(`/discounts/${id}`),
+  create: (data) => api.post('/discounts', data),
+  update: (id, data) => api.patch(`/discounts/${id}`, data),
+  delete: (id) => api.delete(`/discounts/${id}`),
+};
+
+// Billing (extended)
+export const billingAPI = {
+  runCycle: () => api.post('/billing/run-cycle'),
+  listRuns: (limit = 20) => api.get('/billing/runs', { params: { limit } }),
+  calculatePrepaid: (subscriptionId, months, discountId = null) =>
+    api.post('/billing/calculate-prepaid', { subscriptionId, months, discountId }),
+  generatePrepaid: (subscriptionId, months, discountId = null, paymentMethod = 'cash', notes = null) =>
+    api.post('/billing/generate-prepaid', { subscriptionId, months, discountId, paymentMethod, notes }),
+  forecast: (days = 30) => api.get('/billing/forecast', { params: { days } }),
+  autoSuspend: () => api.post('/billing/auto-suspend'),
+};
+
 // Terminals
 export const terminalsAPI = {
   list: () => api.get('/terminals'),
