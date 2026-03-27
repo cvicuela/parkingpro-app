@@ -117,6 +117,7 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
 function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   const [months, setMonths] = useState(1);
   const [discounts, setDiscounts] = useState([]);
+  const [discountsLoading, setDiscountsLoading] = useState(true);
   const [selectedDiscount, setSelectedDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
@@ -125,9 +126,14 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
+    setDiscountsLoading(true);
     discountsAPI.list({ active: true })
-      .then(({ data }) => setDiscounts(data.data || data || []))
-      .catch(() => {});
+      .then(({ data }) => {
+        const list = data?.data || data || [];
+        setDiscounts(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setDiscounts([]))
+      .finally(() => setDiscountsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -135,7 +141,7 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
     setLoading(true);
     const discId = selectedDiscount || null;
     billingAPI.calculatePrepaid(subscription.id, months, discId)
-      .then(({ data }) => setPreview(data.data || data))
+      .then(({ data }) => setPreview(data?.data || data))
       .catch(() => setPreview(null))
       .finally(() => setLoading(false));
   }, [subscription?.id, months, selectedDiscount]);
@@ -155,7 +161,16 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-DO') : '-';
+  const grossPrice = parseFloat(subscription.price_per_period) || 0;
+  const taxRate = 0.18;
+  const netPrice = Math.round((grossPrice / (1 + taxRate)) * 100) / 100;
+  const itbisPrice = Math.round((grossPrice - netPrice) * 100) / 100;
   const presetMonths = [1, 3, 6, 12];
+  const availableDiscounts = discounts.filter(d => {
+    if (d.min_months && months < d.min_months) return false;
+    if (d.max_uses && d.current_uses >= d.max_uses) return false;
+    return true;
+  });
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -173,7 +188,10 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
           <div className="bg-indigo-50 rounded-lg p-3">
             <p className="font-semibold text-sm">{subscription.customer_name}</p>
             <p className="text-xs text-gray-600">{subscription.plan_name} - Placa: {subscription.vehicle_plate || 'N/A'}</p>
-            <p className="text-xs text-gray-500">Precio mensual: {fmtMoney(subscription.price_per_period)}</p>
+            <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+              <p>Precio mensual: {fmtMoney(grossPrice)} (ITBIS incl.)</p>
+              <p className="text-gray-400">Neto: {fmtMoney(netPrice)} + ITBIS: {fmtMoney(itbisPrice)}</p>
+            </div>
           </div>
 
           {/* Month Selector */}
@@ -198,25 +216,30 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Tag size={14} className="inline mr-1" />Descuento (opcional)
             </label>
-            <select value={selectedDiscount} onChange={e => setSelectedDiscount(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-              <option value="">Sin descuento</option>
-              {discounts.filter(d => {
-                if (d.min_months && months < d.min_months) return false;
-                if (d.max_uses && d.current_uses >= d.max_uses) return false;
-                return true;
-              }).map(d => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.type === 'percentage' ? d.value + '%' : fmtMoney(d.value)})
-                  {d.min_months > 1 ? ` - Mín. ${d.min_months} meses` : ''}
-                </option>
-              ))}
-            </select>
+            {discountsLoading ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600" /> Cargando descuentos...
+              </div>
+            ) : (
+              <select value={selectedDiscount} onChange={e => setSelectedDiscount(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                <option value="">Sin descuento</option>
+                {availableDiscounts.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.type === 'percentage' ? d.value + '%' : fmtMoney(d.value)})
+                    {d.min_months > 1 ? ` - Min. ${d.min_months} meses` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+            {!discountsLoading && discounts.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">No hay descuentos configurados. Cree uno en la pagina de Descuentos.</p>
+            )}
           </div>
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Metodo de Pago</label>
             <div className="flex gap-2">
               {[
                 { val: 'cash', label: 'Efectivo', icon: Banknote },
@@ -241,24 +264,26 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none" />
           </div>
 
-          {/* Preview */}
+          {/* Preview - correct ITBIS breakdown */}
           {loading ? (
             <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" /></div>
           ) : preview ? (
             <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 border">
               <p className="text-sm font-semibold text-gray-700">Resumen de Factura</p>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>{preview.months} × {fmtMoney(preview.monthly_price)}</span>
+                <span>{preview.months} mes(es) x {fmtMoney(preview.monthly_net || preview.monthly_price)} (neto)</span>
                 <span>{fmtMoney(preview.subtotal_raw)}</span>
               </div>
               {preview.discount_amount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>Descuento: {preview.discount_name}</span>
+                  <span>Descuento: {preview.discount_name}
+                    {preview.discount_type === 'percentage' ? ` (${preview.discount_value}%)` : ''}
+                  </span>
                   <span>-{fmtMoney(preview.discount_amount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm text-gray-600 border-t pt-1">
-                <span>Subtotal</span>
+                <span>Subtotal (sin ITBIS)</span>
                 <span>{fmtMoney(preview.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
@@ -269,8 +294,14 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
                 <span>Total a Pagar</span>
                 <span>{fmtMoney(preview.total)}</span>
               </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Período: {fmtDate(preview.period_start)} → {fmtDate(preview.period_end)}
+              {preview.gross_raw && (
+                <div className="text-xs text-gray-400">
+                  Precio con ITBIS sin descuento: {fmtMoney(preview.gross_raw)}
+                  {preview.discount_amount > 0 && ` → Ahorro: ${fmtMoney(preview.gross_raw - preview.total)}`}
+                </div>
+              )}
+              <div className="text-xs text-gray-400">
+                Periodo: {fmtDate(preview.period_start)} → {fmtDate(preview.period_end)}
               </div>
             </div>
           ) : null}
