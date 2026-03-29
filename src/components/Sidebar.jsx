@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, Car, CreditCard, Layers,
   ShieldCheck, Receipt, BarChart3, Settings, LogOut, X,
   Wallet, FileText, ShieldAlert, History, TrendingDown, AlertTriangle, Bell, Monitor,
-  ChevronDown
+  ChevronDown, Tag
 } from 'lucide-react';
 
 const navGroups = [
@@ -37,6 +37,7 @@ const navGroups = [
       { to: '/pagos', icon: Receipt, label: 'Pagos', roles: ['operator','admin','super_admin'] },
       { to: '/facturas', icon: FileText, label: 'Facturas', roles: ['operator','admin','super_admin'] },
       { to: '/gastos', icon: TrendingDown, label: 'Gastos', roles: ['admin','super_admin'] },
+      { to: '/descuentos', icon: Tag, label: 'Descuentos', roles: ['admin','super_admin'] },
     ],
   },
   {

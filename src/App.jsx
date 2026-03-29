@@ -24,6 +24,7 @@ const AuditPage = lazy(() => import('./pages/AuditPage'));
 const CajaHistorialPage = lazy(() => import('./pages/CajaHistorialPage'));
 const GastosPage = lazy(() => import('./pages/GastosPage'));
 const IncidentesPage = lazy(() => import('./pages/IncidentesPage'));
+const DescuentosPage = lazy(() => import('./pages/DescuentosPage'));
 const NotificacionesPage = lazy(() => import('./pages/NotificacionesPage'));
 const TerminalesPage = lazy(() => import('./pages/TerminalesPage'));
 
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="facturas" element={<PageWrapper name="Facturas"><FacturasPage /></PageWrapper>} />
         <Route path="caja/historial" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Historial de Cajas"><CajaHistorialPage /></PageWrapper></ProtectedRoute>} />
         <Route path="gastos" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Gastos"><GastosPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="descuentos" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Descuentos"><DescuentosPage /></PageWrapper></ProtectedRoute>} />
         <Route path="incidentes" element={<ProtectedRoute><PageWrapper name="Incidentes"><IncidentesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="notificaciones" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Notificaciones"><NotificacionesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Reportes"><ReportesPage /></PageWrapper></ProtectedRoute>} />
