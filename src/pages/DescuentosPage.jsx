@@ -182,13 +182,13 @@ function DiscountModal({ item, onClose, onSaved }) {
         description: form.description,
         type: form.type,
         value: Number(form.value),
-        appliesTo: form.appliesTo,
-        planId: form.appliesTo === 'plan' ? form.planId : null,
-        minMonths: Number(form.minMonths) || 1,
-        maxUses: form.maxUses ? Number(form.maxUses) : null,
-        validFrom: form.validFrom,
-        validUntil: form.validUntil || null,
-        isActive: form.isActive,
+        applies_to: form.appliesTo,
+        plan_id: form.appliesTo === 'plan' ? form.planId : null,
+        min_months: Number(form.minMonths) || 1,
+        max_uses: form.maxUses ? Number(form.maxUses) : null,
+        valid_from: form.validFrom,
+        valid_until: form.validUntil || null,
+        is_active: form.isActive,
       };
       if (item) {
         await discountsAPI.update(item.id, payload);
