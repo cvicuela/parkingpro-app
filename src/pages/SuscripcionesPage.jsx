@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { subscriptionsAPI, customersAPI, vehiclesAPI, plansAPI, rfidAPI, billingAPI, discountsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { Plus, Search, X, Pause, Play, Trash2, QrCode, CreditCard, Wifi, Receipt, Tag, Clock, Banknote, ArrowRightLeft } from 'lucide-react';
@@ -113,6 +114,8 @@ function SubscriptionModal({ subscription, onClose, onSave }) {
   );
 }
 
+const presetMonths = [1, 3, 6, 12];
+
 /* ─── Prepaid Billing Modal ─── */
 function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   const [months, setMonths] = useState(1);
@@ -124,6 +127,12 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   useEffect(() => {
     setDiscountsLoading(true);
@@ -143,11 +152,14 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   useEffect(() => {
     if (!subscription?.id || months < 1) return;
     setLoading(true);
-    const discId = selectedDiscount || null;
-    billingAPI.calculatePrepaid(subscription.id, months, discId)
-      .then(({ data }) => setPreview(data?.data || data))
-      .catch(() => setPreview(null))
-      .finally(() => setLoading(false));
+    const timer = setTimeout(() => {
+      const discId = selectedDiscount || null;
+      billingAPI.calculatePrepaid(subscription.id, months, discId)
+        .then(({ data }) => setPreview(data?.data || data))
+        .catch(() => setPreview(null))
+        .finally(() => setLoading(false));
+    }, 350);
+    return () => { clearTimeout(timer); setLoading(false); };
   }, [subscription?.id, months, selectedDiscount]);
 
   const handleGenerate = async () => {
@@ -169,7 +181,6 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
   const taxRate = 0.18;
   const netPrice = Math.round((grossPrice / (1 + taxRate)) * 100) / 100;
   const itbisPrice = Math.round((grossPrice - netPrice) * 100) / 100;
-  const presetMonths = [1, 3, 6, 12];
   const availableDiscounts = discounts.filter(d => {
     if (d.min_months && months < d.min_months) return false;
     if (d.max_uses && d.current_uses >= d.max_uses) return false;
@@ -333,6 +344,8 @@ function PrepaidBillingModal({ subscription, onClose, onSuccess }) {
 }
 
 export default function SuscripciónesPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -473,24 +486,24 @@ export default function SuscripciónesPage() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-1">
-                        {(s.status === 'active' || s.status === 'past_due') && (
-                          <button onClick={() => setBillingModalSub(s)} title="Generar Factura"
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Receipt size={14} /></button>
+                        {(s.status === 'active' || s.status === 'past_due') && isAdmin && (
+                          <button onClick={() => setBillingModalSub(s)} title="Generar Factura" aria-label="Generar factura"
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Receipt size={14} /></button>
                         )}
                         {s.status === 'active' && (
-                          <button onClick={() => handleSuspend(s.id)} title="Suspender"
-                            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded"><Pause size={14} /></button>
+                          <button onClick={() => handleSuspend(s.id)} title="Suspender" aria-label="Suspender"
+                            className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded"><Pause size={14} /></button>
                         )}
                         {(s.status === 'suspended' || s.status === 'past_due') && (
-                          <button onClick={() => handleReactivate(s.id)} title="Reactivar"
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Play size={14} /></button>
+                          <button onClick={() => handleReactivate(s.id)} title="Reactivar" aria-label="Reactivar"
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Play size={14} /></button>
                         )}
-                        <button onClick={() => handleRfidAction(s)} title={s.rfid_card_id ? "Desvincular RFID" : "Vincular RFID"}
-                          className={`p-1.5 rounded ${s.rfid_card_id ? 'text-indigo-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}>
+                        <button onClick={() => handleRfidAction(s)} title={s.rfid_card_id ? "Desvincular RFID" : "Vincular RFID"} aria-label="Gestionar RFID"
+                          className={`p-2 rounded ${s.rfid_card_id ? 'text-indigo-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}>
                           <CreditCard size={14} />
                         </button>
-                        <button onClick={() => setConfirmCancel(s.id)} title="Cancelar suscripción"
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
+                        <button onClick={() => setConfirmCancel(s.id)} title="Cancelar suscripción" aria-label="Cancelar suscripción"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
