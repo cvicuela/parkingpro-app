@@ -486,7 +486,7 @@ export default function SuscripciónesPage() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-1">
-                        {(s.status === 'active' || s.status === 'past_due') && isAdmin && (
+                        {s.status !== 'cancelled' && isAdmin && (
                           <button onClick={() => setBillingModalSub(s)} title="Generar Factura" aria-label="Generar factura"
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Receipt size={14} /></button>
                         )}
