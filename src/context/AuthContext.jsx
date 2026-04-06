@@ -1,7 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
+
+function isProfileComplete(user) {
+  if (!user) return true; // no user = not relevant
+  return !!(user.first_name && user.last_name);
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -13,13 +18,16 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
 
+  const profileComplete = useMemo(() => isProfileComplete(user), [user]);
+
   useEffect(() => {
     const token = localStorage.getItem('pp_token');
     if (token && !user) {
       authAPI.me()
         .then(({ data }) => {
-          setUser(data.data || data.user || data);
-          localStorage.setItem('pp_user', JSON.stringify(data.data || data.user || data));
+          const u = data.data || data.user || data;
+          setUser(u);
+          localStorage.setItem('pp_user', JSON.stringify(u));
         })
         .catch(() => {
           localStorage.removeItem('pp_token');
@@ -54,6 +62,14 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
+  const updateUser = (updatedFields) => {
+    setUser(prev => {
+      const updated = { ...prev, ...updatedFields };
+      localStorage.setItem('pp_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = () => {
     authAPI.logout().catch(() => {});
     localStorage.removeItem('pp_token');
@@ -63,11 +79,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const updateUser = (updated) => {
-    setUser(updated);
-    localStorage.setItem('pp_user', JSON.stringify(updated));
-  };
-
   const isProfileIncomplete = (u) => {
     const target = u || user;
     if (!target) return false;
@@ -75,7 +86,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isProfileIncomplete }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isProfileIncomplete, profileComplete }}>
       {children}
     </AuthContext.Provider>
   );

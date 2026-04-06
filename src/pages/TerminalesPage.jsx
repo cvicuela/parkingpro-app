@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
   Monitor, Plus, Search, Edit3, PowerOff, Power, X, Save,
-  RefreshCw, Wifi, WifiOff, Activity, MapPin, CheckCircle, BookOpen
+  RefreshCw, Wifi, WifiOff, Activity, MapPin, CheckCircle, BookOpen, Network, Settings2, Plug, CheckCircle2
 } from 'lucide-react';
 import { terminalsAPI } from '../services/api';
 
@@ -27,6 +27,97 @@ function HeartbeatDot({ lastHeartbeat }) {
       <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`} />
       {online ? 'Online' : 'Offline'}
     </span>
+  );
+}
+
+function DeviceGettingStarted({ onAddDevice }) {
+  const steps = [
+    {
+      number: 1,
+      icon: Network,
+      title: 'Conecta el dispositivo ZKTeco a tu red',
+      description: 'Conecta el dispositivo ZKTeco a tu red local usando un cable Ethernet. Asegurate de que el dispositivo tenga alimentacion electrica y que el LED de red este encendido.',
+      color: 'blue',
+    },
+    {
+      number: 2,
+      icon: Settings2,
+      title: 'Configura la IP del dispositivo',
+      description: 'Desde el menu del dispositivo ZKTeco, ve a Comunicacion > Ethernet y asigna una IP fija dentro de tu red (ej: 192.168.1.201). Anota la IP y el puerto (por defecto 4370).',
+      color: 'purple',
+    },
+    {
+      number: 3,
+      icon: Plug,
+      title: 'Agrega el dispositivo aqui',
+      description: 'Haz clic en "Nueva Terminal" e ingresa el nombre, codigo, la direccion IP y el puerto del dispositivo. Selecciona el tipo (entrada, salida, o ambos).',
+      color: 'indigo',
+    },
+    {
+      number: 4,
+      icon: CheckCircle2,
+      title: 'Prueba la conexion',
+      description: 'Una vez agregada la terminal, verifica que el estado aparezca como "Online". Si aparece "Offline", revisa la configuracion de red y que el dispositivo este encendido.',
+      color: 'green',
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-8 py-10 text-center">
+        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Monitor size={32} className="text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Configura tu primera terminal</h2>
+        <p className="text-indigo-100 text-sm max-w-md mx-auto">
+          Las terminales son los puntos de entrada y salida de tu parqueo. Sigue estos pasos para conectar tu primer dispositivo ZKTeco.
+        </p>
+      </div>
+
+      <div className="px-8 py-8">
+        <div className="space-y-6">
+          {steps.map((step) => {
+            const StepIcon = step.icon;
+            const colors = {
+              blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200', number: 'bg-blue-600' },
+              purple: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-200', number: 'bg-purple-600' },
+              indigo: { bg: 'bg-indigo-50', icon: 'text-indigo-600', border: 'border-indigo-200', number: 'bg-indigo-600' },
+              green: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200', number: 'bg-green-600' },
+            };
+            const c = colors[step.color];
+
+            return (
+              <div key={step.number} className={`flex items-start gap-4 p-4 rounded-xl ${c.bg} border ${c.border}`}>
+                <div className="flex-shrink-0 flex items-center gap-3">
+                  <span className={`w-8 h-8 rounded-full ${c.number} text-white text-sm font-bold flex items-center justify-center`}>
+                    {step.number}
+                  </span>
+                  <div className={`w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm`}>
+                    <StepIcon size={20} className={c.icon} />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-800 mb-1">{step.title}</h4>
+                  <p className="text-sm text-gray-600 leading-relaxed">{step.description}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={onAddDevice}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm"
+          >
+            <Plus size={18} /> Agregar Primera Terminal
+          </button>
+          <p className="text-xs text-gray-400 mt-3">
+            Necesitas al menos una terminal configurada para registrar entradas y salidas de vehiculos.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -81,13 +172,31 @@ export default function TerminalesPage() {
   const onlineCount = terminals.filter(t => isOnline(t.last_heartbeat)).length;
   const offlineCount = terminals.filter(t => !isOnline(t.last_heartbeat)).length;
 
+  // Show getting-started guide when there are no terminals at all
+  if (!loading && terminals.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Terminales</h1>
+            <p className="text-sm text-gray-500 mt-1">Gestion de puntos de entrada y salida</p>
+          </div>
+        </div>
+        <DeviceGettingStarted onAddDevice={() => { setEditItem(null); setShowModal(true); }} />
+        {showModal && (
+          <TerminalModal item={editItem} onClose={() => setShowModal(false)} onSaved={load} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Terminales</h1>
-          <p className="text-sm text-gray-500 mt-1">Gestión de puntos de entrada y salida</p>
+          <p className="text-sm text-gray-500 mt-1">Gestion de puntos de entrada y salida</p>
         </div>
         <button
           onClick={() => { setEditItem(null); setShowModal(true); }}

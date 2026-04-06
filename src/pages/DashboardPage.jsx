@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { DollarSign, Users, Car, AlertTriangle, TrendingUp, LogIn, LogOut } from 'lucide-react';
 import PushNotificationToggle from '../components/PushNotificationToggle';
 import SessionStatusBadge from '../components/SessionStatusBadge';
-import { SkeletonKPI, SkeletonTable } from '../components/SkeletonLoader';
+import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { formatTime } from '../services/formatDate';
 import { fmtMoney } from '../utils/formatters';
 
@@ -415,13 +415,7 @@ export default function DashboardPage() {
   }, [fetchData]);
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
-        <SkeletonKPI count={4} />
-        <SkeletonTable rows={5} cols={5} />
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   return (

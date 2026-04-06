@@ -43,11 +43,15 @@ function ProfileCompletionGuard({ children }) {
   return children;
 }
 
-function ProtectedRoute({ children, roles }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ children, roles, allowIncompleteProfile }) {
+  const { user, loading, profileComplete } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  // Redirect to config if profile is incomplete (unless we're already on config)
+  if (!profileComplete && !allowIncompleteProfile) {
+    return <Navigate to="/config" replace />;
+  }
   return children;
 }
 
@@ -79,7 +83,7 @@ function AppRoutes() {
         <Route path="reportes" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Reportes"><ReportesPage /></PageWrapper></ProtectedRoute>} />
         <Route path="auditoria" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Auditoría"><AuditPage /></PageWrapper></ProtectedRoute>} />
         <Route path="terminales" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Terminales"><TerminalesPage /></PageWrapper></ProtectedRoute>} />
-        <Route path="config" element={<ProtectedRoute roles={['admin','super_admin']}><PageWrapper name="Configuración"><ConfigPage /></PageWrapper></ProtectedRoute>} />
+        <Route path="config" element={<ProtectedRoute allowIncompleteProfile><PageWrapper name="Configuración"><ConfigPage /></PageWrapper></ProtectedRoute>} />
       </Route>
     </Routes>
   );

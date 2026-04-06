@@ -16,7 +16,7 @@ export default function CajaPage() {
   const [openForm, setOpenForm] = useState({ openingBalance: '', name: 'Caja Principal' });
   const [denomCounts, setDenomCounts] = useState({});
   const [closeNotes, setCloseNotes] = useState('');
-  const [closing, setClosing] = useState(false);
+  const [closingInProgress, setClosingInProgress] = useState(false);
 
   const fetchActive = useCallback(async () => {
     try {
@@ -54,30 +54,32 @@ export default function CajaPage() {
 
   const handleClose = async (e) => {
     e.preventDefault();
-    if (closing) return;
-    setClosing(true);
+    if (closingInProgress) return;
     const denominations = DENOMINATIONS
       .filter(d => parseInt(denomCounts[d]) > 0)
       .map(d => ({ denomination: d, quantity: parseInt(denomCounts[d]) }));
+    setClosingInProgress(true);
     try {
       const res = await cashAPI.close(activeRegister.id, {
         countedBalance,
         denominations,
         notes: closeNotes
       });
-      const data = res.data.data;
+      const data = res.data.data || res.data;
       if (data.requiresApproval) {
-        toast.warn(data.message, { autoClose: 8000 });
+        toast.warn(data.message || 'Cierre requiere aprobacion del supervisor', { autoClose: 8000 });
       } else {
-        toast.success(data.message);
+        toast.success(data.message || 'Caja cerrada correctamente');
       }
       setShowClose(false);
+      setDenomCounts({});
+      setCloseNotes('');
       setActiveRegister(null);
       setTransactions([]);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error cerrando caja');
     } finally {
-      setClosing(false);
+      setClosingInProgress(false);
     }
   };
 
@@ -307,9 +309,12 @@ export default function CajaPage() {
 
               <div className="flex gap-3">
                 <button type="button" onClick={() => setShowClose(false)} className="flex-1 border border-gray-300 rounded-lg py-2 text-gray-700 hover:bg-gray-50">Cancelar</button>
-                <button type="submit" disabled={closing} className="flex-1 bg-red-600 text-white rounded-lg py-2 hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2">
-                  {closing ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
-                  {closing ? 'Cerrando...' : 'Confirmar Cierre'}
+                <button type="submit" disabled={closingInProgress} className="flex-1 bg-red-600 text-white rounded-lg py-2 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {closingInProgress ? (
+                    <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Cerrando...</>
+                  ) : (
+                    <><CheckCircle size={16} /> Confirmar Cierre</>
+                  )}
                 </button>
               </div>
             </form>
