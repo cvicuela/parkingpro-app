@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { settingsAPI } from '../services/api';
+import { settingsAPI, rpcAPI, authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import {
   Settings, Save, RotateCw, Building2, Receipt, Shield,
-  Bell, Wallet, Globe, ChevronDown, ChevronRight, Plus, Trash2
+  Bell, Wallet, Globe, ChevronDown, ChevronRight, Plus, Trash2, AlertTriangle, X, UserCircle
 } from 'lucide-react';
 
 const categoryConfig = {
@@ -47,13 +48,90 @@ const fieldConfig = {
   payment_retry_attempts: { label: 'Reintentos de Pago', type: 'number' },
 };
 
+function ProfileCompletionBanner({ user, onComplete }) {
+  const [firstName, setFirstName] = useState(user?.first_name || '');
+  const [lastName, setLastName] = useState(user?.last_name || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error('Nombre y apellido son requeridos');
+      return;
+    }
+    setSaving(true);
+    try {
+      await authAPI.updateProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
+      toast.success('Perfil completado exitosamente');
+      onComplete({ first_name: firstName.trim(), last_name: lastName.trim() });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al guardar perfil');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-6 mb-6">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <UserCircle size={28} className="text-amber-600" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-amber-800 mb-1">Completa tu perfil para continuar</h3>
+          <p className="text-sm text-amber-700 mb-4">Necesitamos tu nombre y apellido antes de que puedas usar el sistema.</p>
+          <form onSubmit={handleSaveProfile} className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs font-medium text-amber-700 mb-1">Nombre</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Tu nombre"
+                required
+                className="px-3 py-2 border border-amber-300 rounded-lg text-sm w-48 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-amber-700 mb-1">Apellido</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Tu apellido"
+                required
+                className="px-3 py-2 border border-amber-300 rounded-lg text-sm w-48 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={saving || !firstName.trim() || !lastName.trim()}
+              className="px-5 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              {saving ? (
+                <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Guardando...</>
+              ) : (
+                <><Save size={14} /> Guardar Perfil</>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
+  const { user, profileComplete, updateUser } = useAuth();
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
   const [editValues, setEditValues] = useState({});
   const [expandedCategories, setExpandedCategories] = useState({});
   const [hasChanges, setHasChanges] = useState({});
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -169,6 +247,21 @@ export default function ConfigPage() {
 
   // Add uncategorized settings to 'parqueo' or 'general'
   const categoryOrder = ['general', 'caja', 'facturacion', 'antifraude', 'notificaciones', 'parqueo'];
+
+  const handleResetOperationalData = async () => {
+    if (resetConfirmText !== 'RESET') return;
+    setResetLoading(true);
+    try {
+      await rpcAPI.call('reset_operational_data', { p_confirmation_code: 'RESET' });
+      toast.success('Datos operativos reseteados exitosamente');
+      setShowResetModal(false);
+      setResetConfirmText('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al resetear datos operativos');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const changedCount = Object.values(hasChanges).filter(Boolean).length;
 
@@ -335,6 +428,11 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Profile Completion Banner */}
+      {!profileComplete && (
+        <ProfileCompletionBanner user={user} onComplete={(fields) => updateUser(fields)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -418,6 +516,85 @@ export default function ConfigPage() {
             </div>
           );
         })
+      )}
+
+      {/* Reset Operational Data - superadmin only */}
+      {user?.role === 'superadmin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+          <div className="p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-800">Zona de Peligro</h3>
+                <p className="text-xs text-red-500">Acciones destructivas e irreversibles</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Resetear datos operativos eliminara todas las sesiones de parqueo, pagos, facturas, eventos de acceso y demas datos transaccionales. La configuracion, usuarios, clientes y vehiculos se mantendran.
+            </p>
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Resetear Datos Operativos
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setShowResetModal(false); setResetConfirmText(''); }}>
+          <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-red-700">Confirmar Reset de Datos</h3>
+              <button onClick={() => { setShowResetModal(false); setResetConfirmText(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="p-5">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-red-100">
+                  <AlertTriangle size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-gray-700 font-medium">Esta accion es IRREVERSIBLE.</p>
+                  <p className="text-gray-500 text-sm mt-1">Se eliminaran todos los datos operativos: sesiones, pagos, facturas, eventos de acceso, registros de caja, etc.</p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Escriba <span className="font-bold text-red-600">RESET</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  value={resetConfirmText}
+                  onChange={(e) => setResetConfirmText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                  placeholder="Escriba RESET aqui"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowResetModal(false); setResetConfirmText(''); }}
+                  className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleResetOperationalData}
+                  disabled={resetConfirmText !== 'RESET' || resetLoading}
+                  className="flex-1 py-2 rounded-lg text-white font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {resetLoading ? <RotateCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {resetLoading ? 'Reseteando...' : 'Confirmar Reset'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Categories without settings */}

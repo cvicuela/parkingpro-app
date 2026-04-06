@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,8 +16,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
-      toast.success('Sesion iniciada correctamente');
+      const userData = await login(email, password);
+      if (!userData?.first_name || !userData?.last_name) {
+        toast.info('Completa tu perfil para continuar', { autoClose: 5000 });
+        navigate('/config', { replace: true });
+      } else {
+        toast.success('Sesion iniciada correctamente');
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al iniciar sesion');
     } finally {
@@ -45,7 +52,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                placeholder="admin@parkingpro.com"
+                placeholder="correo@ejemplo.com"
               />
             </div>
           </div>

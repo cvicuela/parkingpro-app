@@ -48,6 +48,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  updateProfile: (data) => api.patch('/auth/profile', data),
 };
 
 // Customers
@@ -231,6 +232,11 @@ export const terminalsAPI = {
   update: (id, data) => api.put(`/terminals/${id}`, data),
   delete: (id) => api.delete(`/terminals/${id}`),
   stats: () => api.get('/terminals/stats'),
+};
+
+// RPC (generic)
+export const rpcAPI = {
+  call: (fn, params = {}) => api.post(`/rpc/${fn}`, params),
 };
 
 // Notifications
