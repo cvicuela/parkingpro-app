@@ -1,6 +1,6 @@
-import { lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
+import { lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
@@ -28,6 +28,21 @@ const DescuentosPage = lazy(() => import('./pages/DescuentosPage'));
 const NotificacionesPage = lazy(() => import('./pages/NotificacionesPage'));
 const TerminalesPage = lazy(() => import('./pages/TerminalesPage'));
 
+function ProfileCompletionGuard({ children }) {
+  const { user, isProfileIncomplete } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (user && isProfileIncomplete() && location.pathname !== '/config') {
+      toast.warn('Completa tu perfil para continuar', { toastId: 'profile-incomplete', autoClose: 6000 });
+      navigate('/config', { replace: true });
+    }
+  }, [user, location.pathname]);
+
+  return children;
+}
+
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
@@ -46,7 +61,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path="/" element={<ProtectedRoute><ProfileCompletionGuard><Layout /></ProfileCompletionGuard></ProtectedRoute>}>
         <Route index element={<PageWrapper name="Dashboard"><DashboardPage /></PageWrapper>} />
         <Route path="clientes" element={<PageWrapper name="Clientes"><ClientesPage /></PageWrapper>} />
         <Route path="vehiculos" element={<PageWrapper name="Vehículos"><VehiculosPage /></PageWrapper>} />

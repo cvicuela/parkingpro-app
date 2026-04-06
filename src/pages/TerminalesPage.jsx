@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
   Monitor, Plus, Search, Edit3, PowerOff, Power, X, Save,
-  RefreshCw, Wifi, WifiOff, Activity, MapPin
+  RefreshCw, Wifi, WifiOff, Activity, MapPin, CheckCircle, BookOpen
 } from 'lucide-react';
 import { terminalsAPI } from '../services/api';
 
@@ -172,10 +172,14 @@ export default function TerminalesPage() {
                 <RefreshCw size={24} className="mx-auto mb-2 animate-spin text-indigo-400" />
                 Cargando terminales...
               </td></tr>
+            ) : filtered.length === 0 && terminals.length === 0 ? (
+              <tr><td colSpan={7} className="py-0">
+                <ZKTecoGettingStarted onAdd={() => { setEditItem(null); setShowModal(true); }} />
+              </td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-12 text-gray-400">
                 <Monitor size={40} className="mx-auto mb-3 text-gray-200" />
-                No hay terminales registradas
+                No se encontraron terminales con ese filtro
               </td></tr>
             ) : filtered.map(t => (
               <tr key={t.id} className={`hover:bg-gray-50 ${!t.is_active ? 'opacity-50' : ''}`}>
@@ -236,6 +240,46 @@ export default function TerminalesPage() {
       {showModal && (
         <TerminalModal item={editItem} onClose={() => setShowModal(false)} onSaved={load} />
       )}
+    </div>
+  );
+}
+
+function ZKTecoGettingStarted({ onAdd }) {
+  const steps = [
+    { num: 1, title: 'Conectar el dispositivo ZKTeco', desc: 'Asegúrate de que el dispositivo esté en la misma red local y tenga asignada una IP estática.' },
+    { num: 2, title: 'Crear la terminal en el sistema', desc: 'Haz clic en "Nueva Terminal" y completa el nombre, código, tipo y la dirección IP del dispositivo.' },
+    { num: 3, title: 'Configurar el SDK ZKTeco', desc: 'En el dispositivo, ingresa al menú de comunicación y configura el servidor con la IP de este sistema en el puerto 4370.' },
+    { num: 4, title: 'Verificar conectividad', desc: 'Una vez configurado, el indicador de estado de la terminal debe cambiar a "Online" en los próximos 5 minutos.' },
+    { num: 5, title: 'Asignar al punto de acceso', desc: 'Desde la página de Control de Acceso, asigna la terminal al punto de entrada o salida correspondiente.' },
+  ];
+  return (
+    <div className="p-8">
+      <div className="max-w-2xl mx-auto text-center mb-8">
+        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <BookOpen size={32} className="text-indigo-600" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Configura tu primer dispositivo ZKTeco</h3>
+        <p className="text-gray-500 text-sm">Sigue estos pasos para conectar tus terminales de acceso y comenzar a registrar entradas y salidas.</p>
+      </div>
+      <div className="max-w-2xl mx-auto space-y-3 mb-8">
+        {steps.map(s => (
+          <div key={s.num} className="flex items-start gap-4 bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{s.num}</div>
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">{s.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-center">
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium text-sm shadow-md"
+        >
+          <Plus size={18} /> Agregar Primera Terminal
+        </button>
+      </div>
     </div>
   );
 }

@@ -63,8 +63,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (updated) => {
+    setUser(updated);
+    localStorage.setItem('pp_user', JSON.stringify(updated));
+  };
+
+  const isProfileIncomplete = (u) => {
+    const target = u || user;
+    if (!target) return false;
+    return !target.first_name || !target.last_name;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isProfileIncomplete }}>
       {children}
     </AuthContext.Provider>
   );
